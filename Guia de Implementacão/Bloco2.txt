@@ -1,0 +1,126 @@
+## BLOCO 2: ENVIO E RECEBIMENTO DE MENSAGENS DE TEXTO
+
+### 9. Enviar mensagem de texto
+**Descrição:** Enviar mensagens de texto simples para contatos.
+
+**É possível implementar via API:** Sim
+
+**Como implementar:**
+- Endpoint: `POST https://graph.facebook.com/v21.0/{phone_number_id}/messages`
+- Headers: `Authorization: Bearer {access_token}`, `Content-Type: application/json`
+- Body obrigatório: `messaging_product`, `to`, `type`, `text`
+
+**Exemplo prático:**
+```javascript
+async function enviarMensagem(destinatario, texto) {
+  const response = await fetch(
+    `https://graph.facebook.com/v21.0/${PHONE_NUMBER_ID}/messages`,
+    {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${ACCESS_TOKEN}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        messaging_product: "whatsapp",
+        to: destinatario, // Ex: "5511999999999"
+        type: "text",
+        text: {body: texto}
+      })
+    }
+  );
+  return response.json();
+}
+```
+
+**Observações:** Limite de 1.000 mensagens gratuitas/mês. Depois, cobrança por mensagem baseada em tarifas por país.
+
+---
+
+### 10. Receber mensagem de texto
+**Descrição:** Receber mensagens enviadas pelos usuários em tempo real.
+
+**É possível implementar via API:** Sim
+
+**Como implementar:**
+- Configurar webhook no Meta App Dashboard
+- URL do webhook: `https://seu-site.com/webhook`
+- Verificar token de validação no setup
+- Processar POST requests com payload das mensagens
+
+**Exemplo prático:**
+```javascript
+app.post('/webhook', (req, res) => {
+  const entry = req.body.entry?.[0];
+  const changes = entry?.changes?.[0];
+  const message = changes?.value?.messages?.[0];
+  
+  if (message?.type === 'text') {
+    const from = message.from; // Número do remetente
+    const texto = message.text.body;
+    const messageId = message.id;
+    
+    salvarMensagemNoBanco({from, texto, messageId, timestamp: new Date()});
+  }
+  
+  res.sendStatus(200);
+});
+```
+
+**Observações:** Webhooks têm timeout de 20 segundos. Processar rapidamente e responder 200 OK.
+
+---
+
+### 11. Formatação de texto (negrito, itálico, riscado, monoespaçado)
+**Descrição:** Formatar texto com *negrito*, _itálico_, ~riscado~ e ```monoespaçado```.
+
+**É possível implementar via API:** Sim
+
+**Como implementar:**
+- Usar marcadores WhatsApp no texto enviado
+- Negrito: `*texto*`
+- Itálico: `_texto_`
+- Riscado: `~texto~`
+- Monoespaçado: ` ```texto``` `
+
+**Exemplo prático:**
+```javascript
+async function enviarMensagemFormatada(destinatario) {
+  const textoFormatado = `
+*Título em negrito*
+_Subtítulo em itálico_
+~Texto riscado~
+\`\`\`Código monoespaçado\`\`\`
+Texto normal aqui
+  `.trim();
+  
+  await enviarMensagem(destinatario, textoFormatado);
+}
+```
+
+**Observações:** Formatação funciona exatamente como no app WhatsApp.
+
+---
+
+### 12. Emojis e emoticons
+**Descrição:** Enviar e receber emojis nativos em mensagens.
+
+**É possível implementar via API:** Sim
+
+**Como implementar:**
+- Emojis são caracteres Unicode, funcionam nativamente
+- Incluir diretamente no corpo da mensagem
+- Use biblioteca como `emoji-picker` no frontend
+
+**Exemplo prático:**
+```javascript
+async function enviarComEmoji(destinatario) {
+  await enviarMensagem(destinatario, "Olá! 👋 Tudo bem? 😊");
+}
+
+// Receber mensagem com emoji
+// O webhook retorna emoji como está: "Oi 🎉"
+```
+
+**Observações:** Suporte total. Emojis são texto Unicode padrão.
+CONTINUE NO BLOCO3

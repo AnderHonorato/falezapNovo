@@ -1,0 +1,249 @@
+Vou criar uma documentação completa e estruturada sobre todas as funcionalidades da aba de conversas do WhatsApp e como implementá-las via API do WhatsApp Business Cloud. Dividirei em blocos temáticos para facilitar o envio.
+
+## BLOCO 1: ORGANIZAÇÃO E GERENCIAMENTO DE CONVERSAS
+
+### 1. Lista de conversas recentes
+**Descrição:** Exibe todas as conversas em ordem cronológica (mais recente primeiro), mostrando foto de perfil, nome do contato, última mensagem e horário.
+
+**É possível implementar via API:** Parcial
+
+**Como implementar:**
+- A API não fornece endpoint direto para listar conversas
+- Solução: Armazenar conversas em banco de dados próprio ao receber webhooks
+- Webhooks capturam mensagens recebidas via POST
+- Endpoint: `POST https://graph.facebook.com/v21.0/{phone_number_id}/messages` (para enviar)
+- Webhook: Receber em `https://seu-site.com/webhook` (configurado no Meta)
+
+**Exemplo prático:**
+```javascript
+// Banco de dados local
+const conversas = [
+  {id: '5511999999999', nome: 'João', ultimaMensagem: 'Oi', horario: '17:52', foto: 'url'}
+];
+
+// Ao receber webhook
+app.post('/webhook', (req, res) => {
+  const mensagem = req.body.entry[0].changes[0].value.messages[0];
+  atualizarListaConversas(mensagem);
+});
+```
+
+**Observações:** A API não mantém histórico de conversas. Você deve implementar seu próprio sistema de armazenamento.
+
+---
+
+### 2. Pesquisa de conversas e mensagens
+**Descrição:** Campo de busca que permite localizar conversas por nome de contato ou conteúdo das mensagens.
+
+**É possível implementar via API:** Não
+
+**Como implementar:**
+- Implementar busca apenas no banco de dados local do site
+- Criar índices de busca full-text nas mensagens armazenadas
+- Buscar por nome, número de telefone ou texto das mensagens
+
+**Exemplo prático:**
+```javascript
+function pesquisarConversas(termo) {
+  return conversas.filter(conv => 
+    conv.nome.toLowerCase().includes(termo.toLowerCase()) ||
+    conv.mensagens.some(msg => msg.texto.includes(termo))
+  );
+}
+```
+
+**Observações:** Funcionalidade totalmente local. A API não oferece busca em mensagens antigas.
+
+---
+
+### 3. Fixar conversas (Pin)
+**Descrição:** Permite fixar até 3 conversas no topo da lista para acesso rápido.
+
+**É possível implementar via API:** Não
+
+**Como implementar:**
+- Gerenciar estado de "fixadas" apenas no frontend/banco local
+- Adicionar campo `fixada: boolean` e `ordemFixacao: number` no BD
+- Ordenar lista colocando conversas fixadas primeiro
+
+**Exemplo prático:**
+```javascript
+const conversaComPin = {
+  id: '5511999999999',
+  nome: 'João',
+  fixada: true,
+  ordemFixacao: 1
+};
+
+function ordenarConversas(conversas) {
+  return conversas.sort((a, b) => {
+    if (a.fixada && !b.fixada) return -1;
+    if (!a.fixada && b.fixada) return 1;
+    return b.timestamp - a.timestamp;
+  });
+}
+```
+
+**Observações:** Recurso exclusivamente local. Não sincroniza com app WhatsApp.
+
+---
+
+### 4. Arquivar conversas
+**Descrição:** Move conversas para pasta "Arquivadas", removendo-as da lista principal.
+
+**É possível implementar via API:** Não
+
+**Como implementar:**
+- Adicionar campo `arquivada: boolean` no banco de dados
+- Filtrar conversas arquivadas da visualização principal
+- Criar visualização separada para "Arquivadas"
+
+**Exemplo prático:**
+```javascript
+function arquivarConversa(conversaId) {
+  db.conversas.update(
+    {id: conversaId}, 
+    {$set: {arquivada: true, dataArquivamento: new Date()}}
+  );
+}
+
+function listarConversasAtivas() {
+  return db.conversas.find({arquivada: {$ne: true}});
+}
+```
+
+**Observações:** Funcionalidade local. Não afeta o aplicativo WhatsApp do usuário.
+
+---
+
+### 5. Silenciar conversas (Mute)
+**Descrição:** Desativa notificações de uma conversa específica por 8 horas, 1 semana ou sempre.
+
+**É possível implementar via API:** Não
+
+**Como implementar:**
+- Gerenciar configuração de notificações no banco local
+- Adicionar campos `silenciada: boolean` e `silenciadaAte: Date`
+- Filtrar conversas silenciadas ao exibir notificações no site
+
+**Exemplo prático:**
+```javascript
+function silenciarConversa(conversaId, duracao) {
+  const dataExpiracao = duracao === 'sempre' ? null : 
+    new Date(Date.now() + duracao * 3600000);
+  
+  db.conversas.update(
+    {id: conversaId},
+    {$set: {silenciada: true, silenciadaAte: dataExpiracao}}
+  );
+}
+```
+
+**Observações:** Afeta apenas notificações no seu site, não no app do usuário.
+
+---
+
+### 6. Marcar como não lida
+**Descrição:** Marca uma conversa como não lida mesmo após visualizar mensagens.
+
+**É possível implementar via API:** Parcial
+
+**Como implementar:**
+- A API permite marcar mensagens como lidas via endpoint
+- Endpoint: `POST https://graph.facebook.com/v21.0/{phone_number_id}/messages`
+- Body: `{"messaging_product": "whatsapp", "status": "read", "message_id": "{message-id}"}`
+- Para "não lida": simplesmente não enviar marcação de leitura
+
+**Exemplo prático:**
+```javascript
+// Marcar como lida
+async function marcarComoLida(messageId) {
+  await fetch(`https://graph.facebook.com/v21.0/${PHONE_ID}/messages`, {
+    method: 'POST',
+    headers: {'Authorization': `Bearer ${ACCESS_TOKEN}`},
+    body: JSON.stringify({
+      messaging_product: "whatsapp",
+      status: "read",
+      message_id: messageId
+    })
+  });
+}
+
+// Para "não lida": gerenciar estado local sem enviar marcação
+```
+
+**Observações:** A API permite marcar como lida. Para "não lida", controle localmente.
+
+---
+
+### 7. Contador de mensagens não lidas
+**Descrição:** Badge numérico mostrando quantidade de mensagens não lidas por conversa.
+
+**É possível implementar via API:** Parcial
+
+**Como implementar:**
+- Rastrear mensagens recebidas via webhook
+- Incrementar contador ao receber mensagem
+- Decrementar ao marcar como lida (via API ou ação do usuário)
+
+**Exemplo prático:**
+```javascript
+const conversa = {
+  id: '5511999999999',
+  mensagensNaoLidas: 3
+};
+
+// Ao receber webhook
+function receberMensagem(mensagem) {
+  db.conversas.update(
+    {id: mensagem.from},
+    {$inc: {mensagensNaoLidas: 1}}
+  );
+}
+
+// Ao abrir conversa
+function abrirConversa(conversaId) {
+  marcarTodasComoLidas(conversaId);
+  db.conversas.update(
+    {id: conversaId},
+    {$set: {mensagensNaoLidas: 0}}
+  );
+}
+```
+
+**Observações:** Gerenciar contador localmente. A API não fornece essa informação diretamente.
+
+---
+
+### 8. Etiquetas/Tags (Labels) - WhatsApp Business
+**Descrição:** Categorizar conversas com etiquetas coloridas (ex: "Novo cliente", "Pendente", "Resolvido").
+
+**É possível implementar via API:** Não
+
+**Como implementar:**
+- Sistema de tags totalmente local no banco de dados
+- Criar tabela de etiquetas com cores e nomes
+- Relacionar múltiplas etiquetas por conversa
+
+**Exemplo prático:**
+```javascript
+const etiquetas = [
+  {id: 1, nome: 'Novo Cliente', cor: '#25D366'},
+  {id: 2, nome: 'Pendente', cor: '#FF9800'},
+  {id: 3, nome: 'Resolvido', cor: '#4CAF50'}
+];
+
+const conversa = {
+  id: '5511999999999',
+  etiquetas: [1, 2] // IDs das etiquetas
+};
+
+function filtrarPorEtiqueta(etiquetaId) {
+  return db.conversas.find({etiquetas: {$in: [etiquetaId]}});
+}
+```
+
+**Observações:** Recurso exclusivo do site. Não sincroniza com WhatsApp Business app.
+
+---
+CONTINUE NO BLOCO2

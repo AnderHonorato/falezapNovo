@@ -1,0 +1,461 @@
+Etapa 1: Estrutura de banco de dados
+
+Crie tabelas separadas para gerenciar empresas e seus recursos:
+
+empresas → id, nome, CNPJ, informações de contato, status do número.
+
+usuarios → id, nome, email, senha, empresa_id, role (atendente/admin).
+
+numeros_whatsapp → id, empresa_id, phone_number_id (da API), access_token, status, tipo (sandbox/produção).
+
+conversas → id, empresa_id, numero_cliente, status (aberta/fechada), última_mensagem_enviada, última_mensagem_recebida.
+
+mensagens → id, conversa_id, tipo (texto/imagem/audio/template), direção (enviada/recebida), payload, timestamp.
+
+templates → id, empresa_id, nome, linguagem, body, header, footer, botões, status (ativo/aprovado).
+
+Observação: toda tabela de conversa ou mensagem deve ter empresa_id para garantir isolamento de dados.
+
+Etapa 2: Conexão com API por empresa
+
+Cada empresa precisa ter seu token de acesso e phone_number_id:
+
+Salvar essas credenciais na tabela numeros_whatsapp.
+
+Criar um serviço de envio de mensagens que recebe empresa_id + numero_cliente + conteúdo e seleciona o número correspondente.
+
+Gerenciar refresh de token se necessário.
+
+Etapa 3: Camada de serviço WhatsApp
+
+Modifique seu serviço whatsappOfficial.servico.js para suportar multi‑tenant:
+
+Receber empresa_id em todos os métodos (enviarTexto, enviarTemplate, etc.).
+
+Buscar número e token da empresa no banco antes de enviar.
+
+Incluir verificação de janela de 24h individual para cada cliente da empresa.
+
+Garantir que templates usados pertençam à empresa correspondente (templates.empresa_id).
+
+Etapa 4: Isolamento de conversas
+
+Toda vez que uma mensagem chega:
+
+Verifique a qual empresa pertence o número.
+
+Crie/conecte a conversa no banco com empresa_id.
+
+Salve mensagens com conversa_id e empresa_id.
+
+Garanta que atendentes só consigam ver mensagens de sua própria empresa.
+
+Etapa 5: Controle de usuários e permissões
+
+Defina roles e permissões:
+
+Admin → pode criar templates, ver todas as conversas da empresa, gerenciar atendentes.
+
+Atendente → só vê conversas atribuídas à empresa, responde mensagens.
+
+Bot (opcional) → envia mensagens automáticas, segue regras de template e janela 24h.
+
+Etapa 6: Templates e fallback
+
+Para mensagens fora da janela de 24h:
+
+Cada empresa deve ter seus próprios templates aprovados.
+
+Salvar no banco (templates.empresa_id) e chamar pelo nome na função enviarTexto.
+
+Se não existir template, enviar erro amigável ou registrar log.
+
+Etapa 7: Painel/admin multi‑tenant
+
+No frontend/painel:
+
+Filtrar apenas dados da empresa logada.
+
+Mostrar lista de atendentes, conversas e templates da empresa.
+
+Garantir que um usuário não acesse outra empresa.
+
+Etapa 8: Logs e auditoria
+
+Registrar logs de cada envio/recebimento:
+
+empresa_id, mensagem_id, status, erro (se houver).
+
+Permite rastrear problemas de envio sem misturar empresas.
+
+Etapa 9: Automação e escalabilidade
+
+Criar filas ou workers:
+
+Envio de mensagens assíncrono por empresa.
+
+Retry automático por erro temporário (timeout, 5xx).
+
+Gerenciar taxa de envio por número para evitar bloqueio na API.
+
+Etapa 10: Segurança
+
+Garantir que cada empresa só acesse seus dados:
+
+IDs internos (mensagens, conversas) sempre filtrados por empresa_id.
+
+Tokens nunca expostos ao frontend.
+
+Criptografar dados sensíveis (tokens, números, e-mails).
+
+
+
+meu-sistema/
+│
+├─ backend/                     # Código do servidor (Node.js + Prisma)
+│   ├─ src/
+│   │   ├─ config/
+│   │   │   └─ database.js       # Conexão Prisma com DB
+│   │   │
+│   │   ├─ modelos/
+│   │   │   └─ whatsappOfficialServico.js   # Serviço multi-tenant WhatsApp
+│   │   │
+│   │   ├─ controllers/
+│   │   │   ├─ empresasControlador.js      # CRUD empresas
+│   │   │   ├─ atendentesControlador.js   # CRUD usuários/atendentes
+│   │   │   ├─ conversasControlador.js    # Receber/enviar mensagens
+│   │   │   └─ templatesControlador.js    # CRUD templates
+│   │   │
+│   │   ├─ rotas/
+│   │   │   ├─ empresasRotas.js
+│   │   │   ├─ atendentesRotas.js
+│   │   │   ├─ conversasRotas.js
+│   │   │   └─ templatesRotas.js
+│   │   │
+│   │   ├─ utils/
+│   │   │   ├─ autenticar.js              # Middleware de autenticação
+│   │   │   └─ validacoes.js              # Funções auxiliares
+│   │   │
+│   │   └─ server.js                       # Inicializa Express + rotas
+│   │
+│   └─ prisma/
+│       ├─ schema.prisma                    # Modelos do DB multi-tenant
+│       └─ migrations/
+│
+├─ frontend/                                  # Painel multi-tenant
+│   ├─ public/
+│   │   └─ css/
+│   │       └─ estilo.css                     # CSS separado
+│   │
+│   ├─ paginas/
+│   │   ├─ login.html
+│   │   ├─ dashboard.html
+│   │   ├─ empresas.html
+│   │   ├─ atendentes.html
+│   │   ├─ conversas.html
+│   │   └─ templates.html
+│   │
+│   └─ js/
+│       ├─ login.js
+│       ├─ dashboard.js
+│       ├─ empresas.js
+│       ├─ atendentes.js
+│       ├─ conversas.js
+│       └─ templates.js
+│
+├─ .env                                     # Variáveis de ambiente (tokens, IDs)
+├─ package.json
+└─ README.md
+
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Empresa {
+  id        Int        @id @default(autoincrement())
+  nome      String
+  cnpj      String
+  numeros   NumeroWhatsApp[]
+  usuarios  Usuario[]
+  conversas Conversa[]
+  templates Template[]
+}
+
+model Usuario {
+  id        Int      @id @default(autoincrement())
+  nome      String
+  email     String   @unique
+  senha     String
+  role      String
+  empresa   Empresa  @relation(fields: [empresaId], references: [id])
+  empresaId Int
+}
+
+model NumeroWhatsApp {
+  id             Int      @id @default(autoincrement())
+  phoneNumberId  String
+  accessToken    String
+  status         String
+  empresa        Empresa  @relation(fields: [empresaId], references: [id])
+  empresaId      Int
+}
+
+model Conversa {
+  id                   Int       @id @default(autoincrement())
+  numeroCliente        String
+  status               String
+  ultimaMensagemEnv    DateTime?
+  ultimaMensagemRec    DateTime?
+  empresa              Empresa   @relation(fields: [empresaId], references: [id])
+  empresaId            Int
+  mensagens            Mensagem[]
+}
+
+model Mensagem {
+  id           Int      @id @default(autoincrement())
+  tipo         String
+  direcao      String
+  payload      String
+  timestamp    DateTime @default(now())
+  conversa     Conversa @relation(fields: [conversaId], references: [id])
+  conversaId   Int
+}
+
+model Template {
+  id         Int      @id @default(autoincrement())
+  nome       String
+  linguagem  String
+  body       String
+  header     String?
+  footer     String?
+  botoes     String?   // JSON array de botões
+  status     String
+  empresa    Empresa   @relation(fields: [empresaId], references: [id])
+  empresaId  Int
+}
+
+
+// backend/src/modelos/whatsappOfficialServico.js
+const axios = require('axios');
+const { PrismaClient } = require('@prisma/client');
+const prisma = new PrismaClient();
+
+class WhatsAppServico {
+  constructor() {}
+
+  async enviarTexto(empresaId, numeroCliente, mensagem) {
+    const numero = await prisma.numerosWhatsApp.findFirst({
+      where: { empresaId, status: 'ativo' }
+    });
+
+    if (!numero) throw new Error('Número WhatsApp da empresa não configurado');
+
+    const url = `https://graph.facebook.com/v21.0/${numero.phoneNumberId}/messages`;
+
+    const payload = {
+      messaging_product: 'whatsapp',
+      to: numeroCliente,
+      type: 'text',
+      text: { body: mensagem }
+    };
+
+    return axios.post(url, payload, {
+      headers: { Authorization: `Bearer ${numero.accessToken}` }
+    });
+  }
+
+  async enviarTemplate(empresaId, numeroCliente, nomeTemplate, variaveis = []) {
+    const numero = await prisma.numerosWhatsApp.findFirst({
+      where: { empresaId, status: 'ativo' }
+    });
+    if (!numero) throw new Error('Número WhatsApp da empresa não configurado');
+
+    const payload = {
+      messaging_product: 'whatsapp',
+      to: numeroCliente,
+      type: 'template',
+      template: {
+        name: nomeTemplate,
+        language: { code: 'pt_BR' },
+        components: [
+          { type: 'body', parameters: variaveis.map(v => ({ type: 'text', text: v })) }
+        ]
+      }
+    };
+
+    return axios.post(
+      `https://graph.facebook.com/v21.0/${numero.phoneNumberId}/messages`,
+      payload,
+      { headers: { Authorization: `Bearer ${numero.accessToken}` } }
+    );
+  }
+}
+
+module.exports = new WhatsAppServico();
+
+/frontend/paginas/dashboard.html
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <link rel="stylesheet" href="../public/css/estilo.css">
+  <title>Dashboard</title>
+</head>
+<body>
+  <h1>Painel Multi-Tenant</h1>
+  <div id="conversas"></div>
+  <script src="../js/dashboard.js"></script>
+</body>
+</html>
+
+
+/frontend/public/css/estilo.css
+body { font-family: Arial, sans-serif; margin: 20px; }
+h1 { color: #333; }
+
+
+
+frontend/
+└─ js/
+   └─ dashboard.js
+
+
+// dashboard.js
+// Funções básicas para listar conversas e enviar mensagens
+// Supõe que seu backend já tem endpoints: /conversas, /enviar-texto, /enviar-template
+
+const empresaId = 1; // Exemplo fixo, em produção pegar do login do usuário
+
+// Elementos do DOM
+const divConversas = document.getElementById('conversas');
+
+// Função para buscar conversas
+async function carregarConversas() {
+  try {
+    const res = await fetch(`/conversas?empresaId=${empresaId}`);
+    const conversas = await res.json();
+
+    divConversas.innerHTML = '';
+    conversas.forEach(c => {
+      const div = document.createElement('div');
+      div.classList.add('conversa');
+      div.innerHTML = `
+        <strong>Cliente:</strong> ${c.numeroCliente} <br>
+        <strong>Status:</strong> ${c.status} <br>
+        <input type="text" id="msg-${c.id}" placeholder="Digite uma mensagem"/>
+        <button onclick="enviarTexto(${c.id})">Enviar Texto</button>
+        <button onclick="enviarTemplate(${c.id})">Enviar Template</button>
+      `;
+      divConversas.appendChild(div);
+    });
+  } catch (err) {
+    console.error('Erro ao carregar conversas:', err);
+  }
+}
+
+// Função para enviar texto
+async function enviarTexto(conversaId) {
+  const input = document.getElementById(`msg-${conversaId}`);
+  const mensagem = input.value.trim();
+  if (!mensagem) return alert('Digite uma mensagem');
+
+  try {
+    const res = await fetch('/conversas/enviar-texto', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        empresaId,
+        conversaId,
+        mensagem
+      })
+    });
+    const data = await res.json();
+    if (data.success) {
+      alert('Mensagem enviada!');
+      input.value = '';
+      carregarConversas();
+    } else {
+      alert('Erro ao enviar: ' + data.error);
+    }
+  } catch (err) {
+    console.error('Erro ao enviar texto:', err);
+  }
+}
+
+// Função para enviar template
+async function enviarTemplate(conversaId) {
+  const variaveis = prompt('Digite os valores das variáveis do template separados por vírgula');
+  const varsArray = variaveis ? variaveis.split(',').map(v => v.trim()) : [];
+
+  try {
+    const res = await fetch('/conversas/enviar-template', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        empresaId,
+        conversaId,
+        nomeTemplate: 'inicio_conversa', // template de exemplo
+        variaveis: varsArray
+      })
+    });
+    const data = await res.json();
+    if (data.success) alert('Template enviado!');
+    else alert('Erro ao enviar template: ' + data.error);
+  } catch (err) {
+    console.error('Erro ao enviar template:', err);
+  }
+}
+
+// Carregar conversas ao abrir dashboard
+carregarConversas();
+
+// backend/src/rotas/conversasRotas.js
+const express = require('express');
+const router = express.Router();
+const prisma = require('@prisma/client').PrismaClient();
+const whatsappServico = require('../modelos/whatsappOfficialServico');
+
+// Listar conversas
+router.get('/', async (req, res) => {
+  const { empresaId } = req.query;
+  const conversas = await prisma.conversa.findMany({
+    where: { empresaId: parseInt(empresaId) }
+  });
+  res.json(conversas);
+});
+
+// Enviar texto
+router.post('/enviar-texto', async (req, res) => {
+  const { empresaId, conversaId, mensagem } = req.body;
+  const conversa = await prisma.conversa.findUnique({ where: { id: conversaId } });
+  if (!conversa || conversa.empresaId !== empresaId) return res.status(403).json({ error: 'Acesso negado' });
+
+  try {
+    await whatsappServico.enviarTexto(empresaId, conversa.numeroCliente, mensagem);
+    res.json({ success: true });
+  } catch (err) {
+    res.json({ success: false, error: err.message });
+  }
+});
+
+// Enviar template
+router.post('/enviar-template', async (req, res) => {
+  const { empresaId, conversaId, nomeTemplate, variaveis } = req.body;
+  const conversa = await prisma.conversa.findUnique({ where: { id: conversaId } });
+  if (!conversa || conversa.empresaId !== empresaId) return res.status(403).json({ error: 'Acesso negado' });
+
+  try {
+    await whatsappServico.enviarTemplate(empresaId, conversa.numeroCliente, nomeTemplate, variaveis);
+    res.json({ success: true });
+  } catch (err) {
+    res.json({ success: false, error: err.message });
+  }
+});
+
+module.exports = router;

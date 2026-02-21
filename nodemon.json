@@ -1,0 +1,10 @@
+{
+  "ignore": [
+    "dados_whatsapp/*",
+    "node_modules/*",
+    "sessoes/*"
+  ],
+  "watch": [
+    "src"
+  ]
+}

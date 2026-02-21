@@ -1,0 +1,368 @@
+/* frontend/src/index.css */
+
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700;900&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Material Design 3 - Light Theme */
+    --md-sys-color-primary: #1976D2;
+    --md-sys-color-on-primary: #FFFFFF;
+    --md-sys-color-primary-container: #BBDEFB;
+    --md-sys-color-on-primary-container: #003258;
+    
+    --md-sys-color-secondary: #03DAC6;
+    --md-sys-color-on-secondary: #003733;
+    --md-sys-color-secondary-container: #A7F3F0;
+    --md-sys-color-on-secondary-container: #002020;
+    
+    --md-sys-color-tertiary: #FBC02D;
+    --md-sys-color-on-tertiary: #3E2723;
+    --md-sys-color-tertiary-container: #FFF9C4;
+    --md-sys-color-on-tertiary-container: #271900;
+    
+    --md-sys-color-error: #D32F2F;
+    --md-sys-color-on-error: #FFFFFF;
+    --md-sys-color-error-container: #FFCDD2;
+    --md-sys-color-on-error-container: #410002;
+    
+    --md-sys-color-surface: #FAFAFA;
+    --md-sys-color-on-surface: #1C1B1F;
+    --md-sys-color-surface-variant: #E0E0E0;
+    --md-sys-color-on-surface-variant: #44474F;
+    
+    --md-sys-color-surface-container: #F5F5F5;
+    --md-sys-color-surface-container-low: #F8F8F8;
+    --md-sys-color-surface-container-high: #EEEEEE;
+    --md-sys-color-surface-container-highest: #E8E8E8;
+    
+    --md-sys-color-outline: #BDBDBD;
+    --md-sys-color-outline-variant: #E0E0E0;
+    
+    --md-sys-color-scrim: #000000;
+    
+    /* Sombras Material Design 3 */
+    --shadow-elevation-1: 0 1px 2px 0 rgba(0,0,0,0.3), 0 1px 3px 1px rgba(0,0,0,0.15);
+    --shadow-elevation-2: 0 1px 2px 0 rgba(0,0,0,0.3), 0 2px 6px 2px rgba(0,0,0,0.15);
+    --shadow-elevation-3: 0 4px 8px 3px rgba(0,0,0,0.15), 0 1px 3px rgba(0,0,0,0.3);
+    --shadow-elevation-4: 0 6px 10px 4px rgba(0,0,0,0.15), 0 2px 3px rgba(0,0,0,0.3);
+  }
+
+  .dark {
+    /* Material Design 3 - Dark Theme */
+    --md-sys-color-primary: #90CAF9;
+    --md-sys-color-on-primary: #003258;
+    --md-sys-color-primary-container: #004A77;
+    --md-sys-color-on-primary-container: #C5E7FF;
+    
+    --md-sys-color-secondary: #80CBC4;
+    --md-sys-color-on-secondary: #003733;
+    --md-sys-color-secondary-container: #00504A;
+    --md-sys-color-on-secondary-container: #9EF2E8;
+    
+    --md-sys-color-tertiary: #FFE082;
+    --md-sys-color-on-tertiary: #3E2723;
+    --md-sys-color-tertiary-container: #5D4037;
+    --md-sys-color-on-tertiary-container: #FFEDB3;
+    
+    --md-sys-color-error: #EF5350;
+    --md-sys-color-on-error: #690005;
+    --md-sys-color-error-container: #93000A;
+    --md-sys-color-on-error-container: #FFDAD6;
+    
+    --md-sys-color-surface: #1C1B1F;
+    --md-sys-color-on-surface: #E6E1E5;
+    --md-sys-color-surface-variant: #424242;
+    --md-sys-color-on-surface-variant: #C4C7C5;
+    
+    --md-sys-color-surface-container: #212121;
+    --md-sys-color-surface-container-low: #1A1A1A;
+    --md-sys-color-surface-container-high: #2C2C2C;
+    --md-sys-color-surface-container-highest: #373737;
+    
+    --md-sys-color-outline: #757575;
+    --md-sys-color-outline-variant: #424242;
+    
+    --md-sys-color-scrim: #000000;
+  }
+
+  /* --- ✅ LAYOUT GLOBAL CORRIGIDO --- */
+  html,
+  body,
+  #root {
+    margin: 0;
+    padding: 0;
+    height: 100vh; /* Define a altura total */
+    width: 100vw;  /* Define a largura total */
+    
+    /* Trava a rolagem do navegador */
+    overflow: hidden; 
+  }
+  
+  body {
+    font-family: 'Roboto', 'Roboto Flex', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background-color: var(--md-sys-color-surface);
+    color: var(--md-sys-color-on-surface);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* --- ✅ SCROLLBAR GLOBAL CORRIGIDA --- */
+  /* Para Chrome, Safari, Edge */
+  *::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  *::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  *::-webkit-scrollbar-thumb {
+    background-color: rgba(134, 150, 160, 0.3);
+    border-radius: 3px;
+  }
+  *::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(134, 150, 160, 0.5);
+  }
+
+  /* Para Firefox */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(134, 150, 160, 0.3) transparent;
+  }
+}
+
+@layer utilities {
+  /* ... (Todas as suas classes @layer utilities ... permanecem as mesmas) ... */
+  .bg-primary { background-color: var(--md-sys-color-primary); }
+  .bg-primary-container { background-color: var(--md-sys-color-primary-container); }
+  .bg-secondary { background-color: var(--md-sys-color-secondary); }
+  .bg-secondary-container { background-color: var(--md-sys-color-secondary-container); }
+  .bg-tertiary { background-color: var(--md-sys-color-tertiary); }
+  .bg-tertiary-container { background-color: var(--md-sys-color-tertiary-container); }
+  .bg-error { background-color: var(--md-sys-color-error); }
+  .bg-error-container { background-color: var(--md-sys-color-error-container); }
+  .bg-surface { background-color: var(--md-sys-color-surface); }
+  .bg-surface-variant { background-color: var(--md-sys-color-surface-variant); }
+  .bg-surface-container { background-color: var(--md-sys-color-surface-container); }
+  .bg-surface-container-low { background-color: var(--md-sys-color-surface-container-low); }
+  .bg-surface-container-high { background-color: var(--md-sys-color-surface-container-high); }
+  .bg-surface-container-highest { background-color: var(--md-sys-color-surface-container-highest); }
+  .bg-scrim { background-color: var(--md-sys-color-scrim); }
+  .text-on-primary { color: var(--md-sys-color-on-primary); }
+  .text-on-primary-container { color: var(--md-sys-color-on-primary-container); }
+  .text-on-secondary { color: var(--md-sys-color-on-secondary); }
+  .text-on-secondary-container { color: var(--md-sys-color-on-secondary-container); }
+  .text-on-tertiary { color: var(--md-sys-color-on-tertiary); }
+  .text-on-tertiary-container { color: var(--md-sys-color-on-tertiary-container); }
+  .text-on-error { color: var(--md-sys-color-on-error); }
+  .text-on-error-container { color: var(--md-sys-color-on-error-container); }
+  .text-on-surface { color: var(--md-sys-color-on-surface); }
+  .text-on-surface-variant { color: var(--md-sys-color-on-surface-variant); }
+  .border-primary { border-color: var(--md-sys-color-primary); }
+  .border-secondary { border-color: var(--md-sys-color-secondary); }
+  .border-tertiary { border-color: var(--md-sys-color-tertiary); }
+  .border-error { border-color: var(--md-sys-color-error); }
+  .border-outline { border-color: var(--md-sys-color-outline); }
+  .border-outline-variant { border-color: var(--md-sys-color-outline-variant); }
+  .shadow-elevation-1 { box-shadow: var(--shadow-elevation-1); }
+  .shadow-elevation-2 { box-shadow: var(--shadow-elevation-2); }
+  .shadow-elevation-3 { box-shadow: var(--shadow-elevation-3); }
+  .shadow-elevation-4 { box-shadow: var(--shadow-elevation-4); }
+
+  /* Scrollbar Customizada (Manter para quem usa a classe) */
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: var(--md-sys-color-outline-variant);
+    border-radius: 3px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: var(--md-sys-color-outline);
+  }
+  .custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: var(--md-sys-color-outline-variant) transparent;
+  }
+}
+/* ========================================
+   ANIMAÇÕES MATERIAL DESIGN 3
+   ======================================== */
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.8;
+    transform: scale(1.1);
+  }
+}
+
+.animate-slideUp {
+  animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.animate-slideIn {
+  animation: slideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.2s ease-out;
+}
+
+.animate-scaleIn {
+  animation: scaleIn 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.animate-pulse {
+  animation: pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* ========================================
+   MENSAGEM FIXADA
+   ======================================== */
+
+.mensagem-fixada {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--md-sys-color-outline-variant);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  opacity: 0.95;
+  background-color: var(--md-sys-color-surface-container-high);
+}
+
+.mensagem-fixada:hover {
+  opacity: 1;
+  background-color: var(--md-sys-color-surface-variant);
+}
+
+.mensagem-fixada-conteudo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
+}
+
+.mensagem-fixada p {
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--md-sys-color-on-surface);
+}
+
+/* ========================================
+   GLASS EFFECT
+   ======================================== */
+
+.glass-effect {
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+/* ========================================
+   RIPPLE EFFECT
+   ======================================== */
+
+.ripple-effect {
+  position: relative;
+  overflow: hidden;
+}
+
+.ripple-effect::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.4);
+  transform: translate(-50%, -50%);
+  transition: width 0.6s, height 0.6s;
+}
+
+.ripple-effect:active::after {
+  width: 200px;
+  height: 200px;
+}
+
+/* ========================================
+   SMOOTH TRANSITIONS
+   ======================================== */
+
+.smooth-transition {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.smooth-transition-fast {
+  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.hw-accelerate {
+  transform: translateZ(0);
+  will-change: transform;
+}
+
+/* ========================================
+   NOTIFICATION PULSE
+   ======================================== */
+
+.notification-pulse {
+  animation: pulse 2s infinite;
+}

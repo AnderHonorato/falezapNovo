@@ -1,0 +1,1104 @@
+BLOCO 12: RECURSOS ADICIONAIS E AVANÇADOS
+64. Gravação de áudio (Push-to-Talk)
+Descrição: Gravar mensagem de voz segurando botão, similar ao app mobile.
+É possível implementar via API: Sim (gravar no frontend, enviar via API)
+Como implementar:
+
+Usar Web Audio API para gravar
+Converter para formato OGG Opus
+Enviar como mensagem de áudio
+
+Exemplo prático:
+html<button class="voice-record-btn" id="voice-record-btn">
+  <svg><!-- ícone microfone --></svg>
+</button>
+
+<div class="voice-recording-ui" id="voice-recording-ui" style="display: none;">
+  <div class="recording-animation">
+    <div class="pulse"></div>
+    <svg class="mic-icon"><!-- ícone mic --></svg>
+  </div>
+  <span class="recording-time">0:00</span>
+  <button class="cancel-recording">Cancelar</button>
+  <button class="send-recording">Enviar</button>
+</div>
+
+<style>
+.voice-recording-ui {
+  position: absolute;
+  bottom: 60px;
+  left: 0;
+  right: 0;
+  background: #202c33;
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  animation: slideUp 0.3s ease;
+}
+
+.recording-animation {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.pulse {
+  width: 40px;
+  height: 40px;
+  background: #ff4444;
+  border-radius: 50%;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.2);
+    opacity: 0.7;
+  }
+}
+
+.recording-time {
+  color: #e9edef;
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.cancel-recording,
+.send-recording {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.cancel-recording {
+  background: #374045;
+  color: #e9edef;
+}
+
+.send-recording {
+  background: #25d366;
+  color: white;
+}
+</style>
+
+<script>
+class AudioRecorder {
+  constructor() {
+    this.mediaRecorder = null;
+    this.audioChunks = [];
+    this.stream = null;
+    this.startTime = null;
+    this.timerInterval = null;
+  }
+  
+  async iniciar() {
+    try {
+      this.stream = await navigator.mediaDevices.getUserMedia({ 
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          sampleRate: 48000
+        } 
+      });
+      
+      // Usar formato compatível
+      const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus') 
+        ? 'audio/webm;codecs=opus' 
+        : 'audio/webm';
+      
+      this.mediaRecorder = new MediaRecorder(this.stream, {
+        mimeType: mimeType
+      });
+      
+      this.mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          this.audioChunks.push(event.data);
+        }
+      };
+      
+      this.mediaRecorder.onstop = async () => {
+        const audioBlob = new Blob(this.audioChunks, { type: mimeType });
+        await this.enviarAudio(audioBlob);
+        this.limpar();
+      };
+      
+      this.mediaRecorder.start();
+      this.startTime = Date.now();
+      this.iniciarTimer();
+      
+      // Mostrar UI de gravação
+      document.getElementById('voice-recording-ui').style.display = 'flex';
+      
+    } catch (error) {
+      console.error('Erro ao acessar microfone:', error);
+      alert('Erro ao acessar microfone. Verifique as permissões.');
+    }
+  }
+  
+  parar() {
+    if (this.mediaRecorder && this.mediaRecorder.state !== 'inactive') {
+      this.mediaRecorder.stop();
+      this.pararTimer();
+    }
+  }
+  
+  cancelar() {
+    if (this.mediaRecorder) {
+      this.mediaRecorder.stop();
+      this.audioChunks = [];
+    }
+    this.limpar();
+    document.getElementById('voice-recording-ui').style.display = 'none';
+  }
+  
+  iniciarTimer() {
+    const timerEl = document.querySelector('.recording-time');
+    this.timerInterval = setInterval(() => {
+      const elapsed = Math.floor((Date.now() - this.startTime) / 1000);
+      const minutes = Math.floor(elapsed / 60);
+      const seconds = elapsed % 60;
+      timerEl.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+    }, 100);
+  }
+  
+  pararTimer() {
+    if (this.timerInterval) {
+      clearInterval(this.timerInterval);
+      this.timerInterval = null;
+    }
+  }
+  
+  async enviarAudio(audioBlob) {
+    try {
+      const formData = new FormData();
+      formData.append('audio', audioBlob, 'voice-message.ogg');
+      formData.append('destinatario', app.conversaAtual);
+      formData.append('tipo', 'voice');
+      
+      const response = await fetch('/api/enviar-audio', {
+        method: 'POST',
+        body: formData
+      });
+      
+      if (response.ok) {
+        const mensagem = await response.json();
+        app.adicionarMensagemNaUI({
+          type: 'audio',
+          isVoice: true,
+          url: URL.createObjectURL(audioBlob),
+          direcao: 'enviada',
+          timestamp: new Date()
+        });
+      }
+    } catch (error) {
+      console.error('Erro ao enviar áudio:', error);
+      alert('Erro ao enviar mensagem de voz');
+    } finally {
+      document.getElementById('voice-recording-ui').style.display = 'none';
+    }
+  }
+  
+  limpar() {
+    if (this.stream) {
+      this.stream.getTracks().forEach(track => track.stop());
+      this.stream = null;
+    }
+    this.audioChunks = [];
+    this.mediaRecorder = null;
+    this.startTime = null;
+  }
+}
+
+const audioRecorder = new AudioRecorder();
+
+// Event listeners
+document.getElementById('voice-record-btn').addEventListener('click', () => {
+  audioRecorder.iniciar();
+});
+
+document.querySelector('.send-recording').addEventListener('click', () => {
+  audioRecorder.parar();
+});
+
+document.querySelector('.cancel-recording').addEventListener('click', () => {
+  audioRecorder.cancelar();
+});
+
+// Mobile: manter pressionado para gravar
+let pressTimer = null;
+document.getElementById('voice-record-btn').addEventListener('mousedown', () => {
+  pressTimer = setTimeout(() => {
+    audioRecorder.iniciar();
+  }, 200);
+});
+
+document.getElementById('voice-record-btn').addEventListener('mouseup', () => {
+  clearTimeout(pressTimer);
+});
+</script>
+Observações:
+
+Requer permissão de microfone
+Formato OGG Opus recomendado para PTT
+Limite de duração (ex: 5 minutos)
+Indicador visual durante gravação
+
+
+65. Mensagens temporárias (Disappearing Messages)
+Descrição: Mensagens que se autodestroem após período configurado (24h, 7 dias, 90 dias).
+É possível implementar via API: Não (oficialmente), Sim (localmente)
+Como implementar:
+
+API não suporta mensagens temporárias oficialmente
+Implementar lógica de expiração no backend
+Deletar mensagens automaticamente após período
+
+Exemplo prático:
+javascript// Estrutura de mensagem com expiração
+const mensagem = {
+  id: 'msg_123',
+  texto: 'Esta mensagem expira em 24h',
+  timestamp: new Date(),
+  expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24h
+  isTemporary: true
+};
+
+// Job para deletar mensagens expiradas
+const cron = require('node-cron');
+
+// Executar a cada hora
+cron.schedule('0 * * * *', async () => {
+  const agora = new Date();
+  
+  // Buscar mensagens expiradas
+  const mensagensExpiradas = await db.mensagens.find({
+    isTemporary: true,
+    expiresAt: {$lte: agora},
+    deleted: {$ne: true}
+  });
+  
+  // Marcar como deletadas
+  for (const msg of mensagensExpiradas) {
+    await db.mensagens.update(
+      {id: msg.id},
+      {$set: {deleted: true, deletedAt: agora}}
+    );
+    
+    // Notificar clientes conectados
+    io.emit('message-deleted', {
+      messageId: msg.id,
+      conversaNumero: msg.from || msg.to
+    });
+  }
+  
+  console.log(`${mensagensExpiradas.length} mensagens temporárias deletadas`);
+});
+
+// Configurar mensagens temporárias para uma conversa
+async function configurarMensagensTemporarias(numeroConversa, duracao) {
+  // duracao: '24h', '7d', '90d', ou null para desativar
+  
+  let duracaoMs = null;
+  if (duracao) {
+    const match = duracao.match(/(\d+)([hd])/);
+    const valor = parseInt(match[1]);
+    const unidade = match[2];
+    
+    duracaoMs = unidade === 'h' 
+      ? valor * 60 * 60 * 1000 
+      : valor * 24 * 60 * 60 * 1000;
+  }
+  
+  await db.conversas.update(
+    {numero: numeroConversa},
+    {
+      $set: {
+        mensagensTemporarias: duracao !== null,
+        duracaoTemporaria: duracaoMs
+      }
+    }
+  );
+}
+
+// Ao enviar mensagem, verificar se conversa tem temporárias ativadas
+async function enviarMensagemComExpiracao(destinatario, texto) {
+  const conversa = await db.conversas.findOne({numero: destinatario});
+  
+  const mensagem = {
+    from: PHONE_NUMBER_ID,
+    to: destinatario,
+    texto: texto,
+    timestamp: new Date(),
+    isTemporary: conversa?.mensagensTemporarias || false
+  };
+  
+  if (mensagem.isTemporary) {
+    mensagem.expiresAt = new Date(Date.now() + conversa.duracaoTemporaria);
+  }
+  
+  await db.mensagens.insert(mensagem);
+  await enviarMensagem(destinatario, texto);
+  
+  return mensagem;
+}
+
+// UI para configurar
+function renderizarOpcoesMensagensTemporarias() {
+  return `
+    <div class="temp-messages-settings">
+      <h4>Mensagens Temporárias</h4>
+      <p>As mensagens desaparecerão automaticamente após o período selecionado</p>
+      <select id="temp-duration">
+        <option value="">Desativado</option>
+        <option value="24h">24 horas</option>
+        <option value="7d">7 dias</option>
+        <option value="90d">90 dias</option>
+      </select>
+      <button onclick="app.salvarConfiguracaoTemporarias()">Salvar</button>
+    </div>
+  `;
+}
+Observações:
+
+Funcionalidade exclusiva local (não sincroniza com WhatsApp)
+Usar cron jobs para limpeza automática
+Avisar usuários sobre a configuração
+
+
+66. Enquetes/Polls
+Descrição: Criar enquetes com múltiplas opções de resposta.
+É possível implementar via API: Não (oficialmente), Sim (simulado)
+Como implementar:
+
+API não tem tipo "poll" nativo
+Simular com mensagens interativas (botões ou listas)
+Rastrear respostas no backend
+
+Exemplo prático:
+javascript// Criar enquete
+async function criarEnquete(destinatario, pergunta, opcoes) {
+  const enqueteId = `poll_${Date.now()}`;
+  
+  // Salvar enquete no BD
+  await db.enquetes.insert({
+    id: enqueteId,
+    pergunta: pergunta,
+    opcoes: opcoes.map((op, i) => ({id: i, texto: op, votos: 0})),
+    criador: PHONE_NUMBER_ID,
+    destinatarios: [destinatario],
+    criadaEm: new Date()
+  });
+  
+  // Enviar como mensagem interativa
+  if (opcoes.length <= 3) {
+    // Usar botões (máximo 3)
+    await enviarMensagemComBotoes(destinatario, {
+      texto: `📊 *Enquete*\n\n${pergunta}`,
+      botoes: opcoes.map((op, i) => ({
+        id: `poll_${enqueteId}_${i}`,
+        titulo: op
+      }))
+    });
+  } else {
+    // Usar lista (mais de 3 opções)
+    await enviarLista(destinatario, {
+      header: '📊 Enquete',
+      body: pergunta,
+      buttonText: 'Votar',
+      sections: [{
+        title: 'Opções',
+        rows: opcoes.map((op, i) => ({
+          id: `poll_${enqueteId}_${i}`,
+          title: op
+        }))
+      }]
+    });
+  }
+}
+
+// Processar voto
+async function processarVoto(numeroUsuario, buttonId) {
+  const match = buttonId.match(/poll_(.+)_(\d+)/);
+  if (!match) return;
+  
+  const enqueteId = match[1];
+  const opcaoIndex = parseInt(match[2]);
+  
+  // Verificar se já votou
+  const votoExistente = await db.votosEnquete.findOne({
+    enqueteId: enqueteId,
+    usuario: numeroUsuario
+  });
+  
+  if (votoExistente) {
+    await enviarMensagem(numeroUsuario, '❌ Você já votou nesta enquete!');
+    return;
+  }
+  
+  // Registrar voto
+  await db.votosEnquete.insert({
+    enqueteId: enqueteId,
+    usuario: numeroUsuario,
+    opcao: opcao```javascript
+    opcao: opcaoIndex,
+    timestamp: new Date()
+  });
+  
+  // Atualizar contagem
+  await db.enquetes.update(
+    {id: enqueteId},
+    {$inc: {[`opcoes.${opcaoIndex}.votos`]: 1}}
+  );
+  
+  // Enviar confirmação com resultados parciais
+  const enquete = await db.enquetes.findOne({id: enqueteId});
+  const resultados = await gerarMensagemResultados(enquete);
+  
+  await enviarMensagem(numeroUsuario, `✅ Voto registrado!\n\n${resultados}`);
+}
+
+// Gerar mensagem com resultados
+async function gerarMensagemResultados(enquete) {
+  const totalVotos = enquete.opcoes.reduce((sum, op) => sum + op.votos, 0);
+  
+  let mensagem = `📊 *${enquete.pergunta}*\n\n`;
+  mensagem += `Total de votos: ${totalVotos}\n\n`;
+  
+  enquete.opcoes.forEach((opcao, i) => {
+    const percentual = totalVotos > 0 ? (opcao.votos / totalVotos * 100).toFixed(1) : 0;
+    const barraCheia = Math.round(percentual / 10);
+    const barraVazia = 10 - barraCheia;
+    const barra = '█'.repeat(barraCheia) + '░'.repeat(barraVazia);
+    
+    mensagem += `${i + 1}. ${opcao.texto}\n`;
+    mensagem += `   ${barra} ${percentual}% (${opcao.votos})\n\n`;
+  });
+  
+  return mensagem;
+}
+
+// Webhook para capturar votos
+app.post('/webhook', async (req, res) => {
+  const message = req.body.entry?.[0]?.changes?.[0]?.value?.messages?.[0];
+  
+  if (message?.type === 'interactive') {
+    const buttonReply = message.interactive.button_reply;
+    const listReply = message.interactive.list_reply;
+    
+    const buttonId = buttonReply?.id || listReply?.id;
+    
+    if (buttonId && buttonId.startsWith('poll_')) {
+      await processarVoto(message.from, buttonId);
+    }
+  }
+  
+  res.sendStatus(200);
+});
+
+// Enviar resultados finais da enquete
+async function enviarResultadosFinais(enqueteId) {
+  const enquete = await db.enquetes.findOne({id: enqueteId});
+  const resultados = await gerarMensagemResultados(enquete);
+  
+  // Enviar para todos os participantes
+  const votantes = await db.votosEnquete.find({enqueteId: enqueteId}).distinct('usuario');
+  
+  for (const usuario of votantes) {
+    await enviarMensagem(usuario, `🏁 *Enquete Finalizada*\n\n${resultados}`);
+  }
+}
+
+// UI para criar enquete
+function renderizarCriarEnquete() {
+  return `
+    <div class="create-poll-modal">
+      <h3>📊 Criar Enquete</h3>
+      <div class="form-group">
+        <label>Pergunta:</label>
+        <input type="text" id="poll-question" placeholder="Qual sua opinião sobre...">
+      </div>
+      <div class="form-group">
+        <label>Opções:</label>
+        <div id="poll-options">
+          <input type="text" class="poll-option" placeholder="Opção 1">
+          <input type="text" class="poll-option" placeholder="Opção 2">
+        </div>
+        <button onclick="app.adicionarOpcaoEnquete()">+ Adicionar Opção</button>
+      </div>
+      <button onclick="app.enviarEnquete()" class="btn-primary">Enviar Enquete</button>
+    </div>
+  `;
+}
+```
+
+**Observações:**
+- Enquetes simuladas com botões/listas interativas
+- Rastrear votos no backend
+- Prevenir votos duplicados
+- Exibir resultados em tempo real
+
+---
+
+### 67. Reações a mensagens (Reactions)
+**Descrição:** Reagir a mensagens com emojis (curtir, amar, rir, etc).
+
+**É possível implementar via API:** Sim (parcial)
+
+**Como implementar:**
+- API suporta envio de reações oficialmente
+- Endpoint específico para reactions
+- Receber reações via webhook
+
+**Exemplo prático:**
+```javascript
+// Enviar reação a uma mensagem
+async function reagirMensagem(messageId, emoji) {
+  await fetch(`https://graph.facebook.com/v21.0/${PHONE_NUMBER_ID}/messages`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${ACCESS_TOKEN}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      messaging_product: "whatsapp",
+      recipient_type: "individual",
+      to: destinatario, // Número que enviou a mensagem original
+      type: "reaction",
+      reaction: {
+        message_id: messageId,
+        emoji: emoji // Ex: "👍", "❤️", "😂", "😮", "😢", "🙏"
+      }
+    })
+  });
+}
+
+// Remover reação (enviar emoji vazio)
+async function removerReacao(messageId) {
+  await reagirMensagem(messageId, "");
+}
+
+// Receber reações via webhook
+app.post('/webhook', async (req, res) => {
+  const message = req.body.entry?.[0]?.changes?.[0]?.value?.messages?.[0];
+  
+  if (message?.type === 'reaction') {
+    const reaction = message.reaction;
+    const messageId = reaction.message_id; // ID da mensagem que foi reagida
+    const emoji = reaction.emoji; // Emoji da reação (vazio se removida)
+    const from = message.from; // Quem reagiu
+    
+    // Salvar reação
+    if (emoji) {
+      await db.reacoes.insert({
+        messageId: messageId,
+        usuario: from,
+        emoji: emoji,
+        timestamp: new Date()
+      });
+    } else {
+      // Reação removida
+      await db.reacoes.deleteOne({
+        messageId: messageId,
+        usuario: from
+      });
+    }
+    
+    // Atualizar UI em tempo real
+    io.emit('reaction-update', {
+      messageId: messageId,
+      usuario: from,
+      emoji: emoji
+    });
+  }
+  
+  res.sendStatus(200);
+});
+
+// UI para reações
+function renderizarReacoes(messageId, reacoes) {
+  if (!reacoes || reacoes.length === 0) return '';
+  
+  // Agrupar por emoji
+  const contagemPorEmoji = {};
+  reacoes.forEach(r => {
+    contagemPorEmoji[r.emoji] = (contagemPorEmoji[r.emoji] || 0) + 1;
+  });
+  
+  return `
+    <div class="message-reactions">
+      ${Object.entries(contagemPorEmoji).map(([emoji, count]) => `
+        <span class="reaction-badge" onclick="app.verQuemReagiu('${messageId}', '${emoji}')">
+          ${emoji} ${count}
+        </span>
+      `).join('')}
+    </div>
+  `;
+}
+
+// Menu de reações (similar ao WhatsApp)
+function mostrarMenuReacoes(messageElement, messageId) {
+  const menu = document.createElement('div');
+  menu.className = 'reactions-menu';
+  menu.innerHTML = `
+    <button class="reaction-btn" onclick="app.reagir('${messageId}', '👍')">👍</button>
+    <button class="reaction-btn" onclick="app.reagir('${messageId}', '❤️')">❤️</button>
+    <button class="reaction-btn" onclick="app.reagir('${messageId}', '😂')">😂</button>
+    <button class="reaction-btn" onclick="app.reagir('${messageId}', '😮')">😮</button>
+    <button class="reaction-btn" onclick="app.reagir('${messageId}', '😢')">😢</button>
+    <button class="reaction-btn" onclick="app.reagir('${messageId}', '🙏')">🙏</button>
+    <button class="reaction-btn more" onclick="app.mostrarTodosEmojis('${messageId}')">➕</button>
+  `;
+  
+  // Posicionar próximo à mensagem
+  const rect = messageElement.getBoundingClientRect();
+  menu.style.top = `${rect.top - 60}px`;
+  menu.style.left = `${rect.left}px`;
+  
+  document.body.appendChild(menu);
+  
+  // Fechar ao clicar fora
+  setTimeout(() => {
+    document.addEventListener('click', function closeMenu(e) {
+      if (!menu.contains(e.target)) {
+        menu.remove();
+        document.removeEventListener('click', closeMenu);
+      }
+    });
+  }, 100);
+}
+
+// Estilo para reações
+const styleReacoes = `
+<style>
+.message-reactions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 4px;
+  margin-bottom: -4px;
+}
+
+.reaction-badge {
+  background: #2a3942;
+  border: 1px solid #374045;
+  border-radius: 12px;
+  padding: 2px 8px;
+  font-size: 12px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.2s;
+}
+
+.reaction-badge:hover {
+  background: #374045;
+  transform: scale(1.1);
+}
+
+.reactions-menu {
+  position: fixed;
+  background: #233138;
+  border-radius: 24px;
+  padding: 8px;
+  display: flex;
+  gap: 4px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+  z-index: 1000;
+  animation: scaleIn 0.2s ease;
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.reaction-btn {
+  width: 40px;
+  height: 40px;
+  border: none;
+  background: none;
+  font-size: 24px;
+  cursor: pointer;
+  border-radius: 50%;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.reaction-btn:hover {
+  background: #2a3942;
+  transform: scale(1.2);
+}
+
+.reaction-btn.more {
+  font-size: 20px;
+}
+</style>
+`;
+
+// Adicionar long-press nas mensagens para mostrar menu de reações
+document.querySelectorAll('.message').forEach(msgEl => {
+  let pressTimer;
+  
+  msgEl.addEventListener('mousedown', (e) => {
+    pressTimer = setTimeout(() => {
+      const messageId = msgEl.dataset.messageId;
+      mostrarMenuReacoes(msgEl, messageId);
+    }, 500);
+  });
+  
+  msgEl.addEventListener('mouseup', () => {
+    clearTimeout(pressTimer);
+  });
+  
+  msgEl.addEventListener('mouseleave', () => {
+    clearTimeout(pressTimer);
+  });
+});
+```
+
+**Observações:**
+- API oficialmente suporta reações
+- Apenas 1 reação por usuário por mensagem
+- Emojis suportados: 👍❤️😂😮😢🙏 e outros Unicode
+- Reações são bidirecionais (você vê as suas e dos usuários)
+
+---
+
+### 68. Responder/citar mensagens (Reply)
+**Descrição:** Responder citando uma mensagem anterior, criando contexto.
+
+**É possível implementar via API:** Sim
+
+**Como implementar:**
+- Usar campo `context` ao enviar mensagem
+- Especificar `message_id` da mensagem sendo citada
+- Webhook retorna contexto ao receber respostas
+
+**Exemplo prático:**
+```javascript
+// Enviar mensagem respondendo outra
+async function responderMensagem(destinatario, texto, messageIdOriginal) {
+  await fetch(`https://graph.facebook.com/v21.0/${PHONE_NUMBER_ID}/messages`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${ACCESS_TOKEN}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      messaging_product: "whatsapp",
+      to: destinatario,
+      type: "text",
+      context: {
+        message_id: messageIdOriginal
+      },
+      text: {
+        body: texto
+      }
+    })
+  });
+}
+
+// Receber mensagens com contexto via webhook
+app.post('/webhook', async (req, res) => {
+  const message = req.body.entry?.[0]?.changes?.[0]?.value?.messages?.[0];
+  
+  if (message?.context) {
+    const messageIdCitada = message.context.message_id;
+    const from = message.context.from; // Quem enviou a mensagem citada
+    
+    // Buscar mensagem original
+    const mensagemOriginal = await db.mensagens.findOne({
+      messageId: messageIdCitada
+    });
+    
+    // Salvar com referência
+    await db.mensagens.insert({
+      messageId: message.id,
+      from: message.from,
+      texto: message.text?.body,
+      timestamp: new Date(message.timestamp * 1000),
+      replyTo: messageIdCitada,
+      replyToText: mensagemOriginal?.texto
+    });
+  }
+  
+  res.sendStatus(200);
+});
+
+// UI para responder mensagem
+function renderizarMensagemComReply(mensagem) {
+  const replyPreview = mensagem.replyToText ? `
+    <div class="reply-preview">
+      <div class="reply-bar"></div>
+      <div class="reply-content">
+        <span class="reply-author">Você</span>
+        <span class="reply-text">${mensagem.replyToText}</span>
+      </div>
+    </div>
+  ` : '';
+  
+  return `
+    <div class="message ${mensagem.direcao === 'enviada' ? 'sent' : 'received'}" 
+         data-message-id="${mensagem.messageId}">
+      <div class="message-bubble">
+        ${replyPreview}
+        <div class="message-text">${mensagem.texto}</div>
+        <div class="message-meta">
+          <span class="message-time">${formatarHora(mensagem.timestamp)}</span>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+// Interface de resposta no footer
+class WhatsAppClone {
+  // ... código anterior ...
+  
+  selecionarMensagemParaResponder(messageId, texto) {
+    this.mensagemParaResponder = {id: messageId, texto: texto};
+    
+    // Mostrar preview no footer
+    const footer = document.querySelector('.chat-footer');
+    const previewExistente = footer.querySelector('.reply-preview-footer');
+    
+    if (previewExistente) {
+      previewExistente.remove();
+    }
+    
+    const preview = document.createElement('div');
+    preview.className = 'reply-preview-footer';
+    preview.innerHTML = `
+      <div class="reply-bar"></div>
+      <div class="reply-content">
+        <span class="reply-label">Respondendo</span>
+        <span class="reply-text">${texto.substring(0, 50)}${texto.length > 50 ? '...' : ''}</span>
+      </div>
+      <button class="close-reply" onclick="app.cancelarResposta()">
+        <svg><!-- ícone X --></svg>
+      </button>
+    `;
+    
+    footer.insertBefore(preview, footer.firstChild);
+    document.getElementById('message-input').focus();
+  }
+  
+  cancelarResposta() {
+    this.mensagemParaResponder = null;
+    document.querySelector('.reply-preview-footer')?.remove();
+  }
+  
+  async enviarMensagem() {
+    const input = document.getElementById('message-input');
+    const texto = input.value.trim();
+    
+    if (!texto || !this.conversaAtual) return;
+    
+    input.value = '';
+    
+    // Verificar se está respondendo
+    if (this.mensagemParaResponder) {
+      await responderMensagem(
+        this.conversaAtual, 
+        texto, 
+        this.mensagemParaResponder.id
+      );
+      this.cancelarResposta();
+    } else {
+      await enviarMensagem(this.conversaAtual, texto);
+    }
+  }
+}
+
+// Context menu nas mensagens
+document.addEventListener('contextmenu', (e) => {
+  const messageEl = e.target.closest('.message');
+  if (!messageEl) return;
+  
+  e.preventDefault();
+  
+  const messageId = messageEl.dataset.messageId;
+  const messageText = messageEl.querySelector('.message-text').textContent;
+  
+  const contextMenu = document.createElement('div');
+  contextMenu.className = 'context-menu';
+  contextMenu.style.top = `${e.pageY}px`;
+  contextMenu.style.left = `${e.pageX}px`;
+  contextMenu.innerHTML = `
+    <div class="context-menu-item" onclick="app.selecionarMensagemParaResponder('${messageId}', '${messageText}')">
+      <svg><!-- ícone responder --></svg>
+      Responder
+    </div>
+    <div class="context-menu-item" onclick="app.encaminharMensagem('${messageId}')">
+      <svg><!-- ícone encaminhar --></svg>
+      Encaminhar
+    </div>
+    <div class="context-menu-item" onclick="app.copiarMensagem('${messageText}')">
+      <svg><!-- ícone copiar --></svg>
+      Copiar
+    </div>
+    <div class="context-menu-item danger" onclick="app.deletarMensagem('${messageId}')">
+      <svg><!-- ícone lixeira --></svg>
+      Apagar
+    </div>
+  `;
+  
+  document.body.appendChild(contextMenu);
+  
+  // Fechar ao clicar fora
+  setTimeout(() => {
+    document.addEventListener('click', function closeMenu() {
+      contextMenu.remove();
+      document.removeEventListener('click', closeMenu);
+    });
+  }, 100);
+});
+```
+
+**Estilo CSS:**
+```css
+.reply-preview {
+  background: rgba(0,0,0,0.1);
+  border-radius: 8px;
+  padding: 8px;
+  margin-bottom: 8px;
+  display: flex;
+  gap: 8px;
+}
+
+.reply-bar {
+  width: 4px;
+  background: #25d366;
+  border-radius: 2px;
+}
+
+.reply-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.reply-author {
+  color: #25d366;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.reply-text {
+  color: #8696a0;
+  font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.reply-preview-footer {
+  background: #2a3942;
+  border-radius: 8px;
+  padding: 8px 12px;
+  margin-bottom: 8px;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.reply-label {
+  color: #25d366;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.close-reply {
+  background: none;
+  border: none;
+  color: #8696a0;
+  cursor: pointer;
+  padding: 4px;
+}
+
+.context-menu {
+  position: fixed;
+  background: #233138;
+  border-radius: 8px;
+  padding: 8px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+  z-index: 1000;
+  min-width: 180px;
+}
+
+.context-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  cursor: pointer;
+  border-radius: 4px;
+  color: #e9edef;
+  font-size: 14px;
+  transition: background 0.2s;
+}
+
+.context-menu-item:hover {
+  background: #2a3942;
+}
+
+.context-menu-item.danger {
+  color: #ff4444;
+}
+
+.context-menu-item svg {
+  width: 20px;
+  height: 20px;
+}
+```
+
+**Observações:**
+- API suporta nativamente replies
+- Contexto visível em ambas as pontas
+- Limite de profundidade (não pode responder uma resposta indefinidamente no visual)
+
+---
+
+## RESUMO FINAL
+
+Criei uma documentação completa com **68 funcionalidades** da aba de conversas do WhatsApp, organizadas em 12 blocos temáticos:
+
+1. **Organização e Gerenciamento** (8 funcionalidades)
+2. **Envio e Recebimento de Mensagens de Texto** (5)
+3. **Comunicação Multimídia** (11)
+4. **Mensagens Interativas e Templates** (8)
+5. **Recursos de Grupo** (5)
+6. **Chamadas e Videochamadas** (4)
+7. **Catálogo e Perfil Comercial** (6)
+8. **Automação e Mensagens Automáticas** (4)
+9. **Engajamento e Métricas** (7)
+10. **Recursos Exclusivos WhatsApp Business** (3)
+11. **Interface Visual e Experiência do Usuário** (3)
+12. **Recursos Adicionais e Avançados** (4)
+
+Cada funcionalidade inclui:
+✅ Descrição detalhada
+✅ Viabilidade via API (Sim/Parcial/Não)
+✅ Como implementar (métodos, endpoints, lógica)
+✅ Exemplos práticos de código
+✅ Observações e limitações
+
+A documentação cobre desde funcionalidades básicas (enviar/receber mensagens) até recursos avançados (reações, enquetes, gravação de áudio), sempre indicando o que é possível via WhatsApp Business Cloud API e o que precisa ser implementado localmente no site.

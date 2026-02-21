@@ -1,0 +1,1222 @@
+// --- INÍCIO DO CÓDIGO ATUALIZADO (baileys.servico.js COMPLETO E CORRIGIDO PARA IGNORAR REAÇÕES) ---
+// Z:\Programação\MultiWhatsapp\falezap-sistema\backend\src\servicos\baileys.servico.js
+
+// --- IMPORTAÇÕES ADICIONAIS ---
+const { default: makeWASocket, useMultiFileAuthState, DisconnectReason, fetchLatestBaileysVersion, makeCacheableSignalKeyStore, isJidBroadcast, downloadMediaMessage } = require('@whiskeysockets/baileys'); // Adicionado downloadMediaMessage
+const { Boom } = require('@hapi/boom');
+const fs = require('fs'); // Adicionado fs
+const path =require('path'); // Adicionado path
+const pino = require('pino');
+const NodeCache = require('node-cache');
+const QRCode = require('qrcode');
+const { PrismaClient } = require('@prisma/client');
+const crypto = require('crypto'); // Para gerar nomes de arquivo únicos
+
+const prisma = new PrismaClient();
+
+// Define o diretório de uploads (fora da classe para ser acessível)
+const UPLOADS_DIR = path.join(__dirname, '../../uploads');
+// Garante que o diretório exista
+if (!fs.existsSync(UPLOADS_DIR)) {
+  fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+}
+
+class ServicoWhatsApp {
+  constructor() {
+    this.clientes = {};
+    this.clientesWS = {};
+    this.tentativasReconexao = {};
+    this.caminhoAuth = path.join(__dirname, '../../dados_whatsapp');
+
+    if (!fs.existsSync(this.caminhoAuth)) {
+      fs.mkdirSync(this.caminhoAuth, { recursive: true });
+    }
+
+    console.log('✅ ServicoWhatsApp inicializado');
+  }
+
+  obterCaminhoAutenticacao(usuarioId, empresaId) {
+    return path.join(this.caminhoAuth, `${empresaId}_${usuarioId}`);
+  }
+
+  registrarClienteWS(usuarioId, res) {
+    console.log(`📡 Cliente registrado: ${usuarioId}`);
+    this.clientesWS[usuarioId] = res;
+  }
+
+  enviarQRCodeParaCliente(usuarioId, qrDataURL) {
+    const res = this.clientesWS[usuarioId];
+    if (res && !res.headersSent) {
+      console.log(`📤 Enviando QR Code`);
+      try {
+        res.json({
+          sucesso: true,
+          qrCode: qrDataURL,
+          mensagem: 'Escaneie o QR Code'
+        });
+      } catch (e) {
+        console.error('Erro ao enviar QR:', e.message);
+      }
+      delete this.clientesWS[usuarioId];
+    }
+  }
+
+  async reconectar(usuarioId, empresaId, tentativa = 0) {
+    const maxTentativas = 3;
+    if (tentativa >= maxTentativas) {
+      console.log(`❌ Máximo de tentativas atingido para ${usuarioId}`);
+      return;
+    }
+
+    console.log(`🔄 Tentativa de reconexão ${tentativa + 1}/${maxTentativas}`);
+    await new Promise(resolve => setTimeout(resolve, 3000));
+
+    try {
+      await this.conectarWhatsApp(usuarioId, empresaId);
+    } catch (erro) {
+      console.error(`❌ Erro na reconexão:`, erro.message);
+    }
+  }
+
+  async conectarWhatsApp(usuarioId, empresaId) {
+    try {
+      console.log(`\n🔄 Conectando WhatsApp para ${usuarioId}...`);
+
+      const caminhoAuth = this.obterCaminhoAutenticacao(usuarioId, empresaId);
+
+      if (!fs.existsSync(caminhoAuth)) {
+        fs.mkdirSync(caminhoAuth, { recursive: true });
+      }
+
+      if (this.clientes[usuarioId]) {
+        try {
+          await this.clientes[usuarioId].socket?.end();
+          await this.clientes[usuarioId].socket?.ws?.close();
+        } catch (e) {
+          console.log('Limpando conexão anterior...');
+        }
+        delete this.clientes[usuarioId];
+      }
+
+      const { state, saveCreds } = await useMultiFileAuthState(caminhoAuth);
+      const { version } = await fetchLatestBaileysVersion();
+
+      console.log(`📱 Baileys versão: ${version.join('.')}`);
+
+      const msgRetryCounterCache = new NodeCache();
+
+      const socket = makeWASocket({
+        version,
+        logger: pino({ level: 'silent' }),
+        printQRInTerminal: false,
+        browser: ['FaleZap', 'Chrome', '120.0.0'],
+        auth: {
+          creds: state.creds,
+          keys: makeCacheableSignalKeyStore(state.keys, pino({ level: 'silent' })),
+        },
+        markOnlineOnConnect: true,
+        syncFullHistory: false,
+        generateHighQualityLinkPreview: false,
+        shouldIgnoreJid: (jid) => isJidBroadcast(jid),
+        emitOwnEvents: false,
+        getMessage: async (key) => {
+          const msg = await prisma.mensagem.findUnique({
+            where: { whatsappId: key.id }
+          });
+          // @ts-ignore
+          return msg ? { message: { conversation: msg.conteudo } } : undefined;
+        },
+        msgRetryCounterCache,
+        defaultQueryTimeoutMs: undefined,
+        connectTimeoutMs: undefined,
+        keepAliveIntervalMs: 10000,
+        retryRequestDelayMs: 250,
+        maxRetries: 10,
+        qrTimeout: 60000
+      });
+
+      console.log(`✅ Socket criado`);
+
+      socket.ev.on('creds.update', saveCreds);
+
+      let qrEnviado = false;
+      let qrCount = 0;
+
+      socket.ev.on('connection.update', async (update) => {
+        const { connection, lastDisconnect, qr } = update;
+
+        if (qr && !qrEnviado) {
+          qrCount++;
+          console.log(`\n✨ QR CODE GERADO! (${qrCount})`);
+
+          try {
+            const qrDataURL = await QRCode.toDataURL(qr, {
+              errorCorrectionLevel: 'H',
+              type: 'image/png',
+              width: 400,
+              margin: 2,
+              color: {
+                dark: '#000000',
+                light: '#FFFFFF'
+              }
+            });
+
+            this.clientes[usuarioId] = {
+              socket: socket,
+              estado: 'aguardando_qr',
+              empresaId: empresaId,
+              qrGerado: new Date(),
+            };
+
+            this.enviarQRCodeParaCliente(usuarioId, qrDataURL);
+            qrEnviado = true;
+            console.log(`✅ QR Code enviado`);
+
+          } catch (erro) {
+            console.error(`❌ Erro ao converter QR:`, erro.message);
+          }
+        }
+
+        if (connection === 'connecting') {
+          console.log(`🔄 Conectando...`);
+        }
+
+        if (connection === 'open') {
+          console.log(`\n✅ WHATSAPP CONECTADO!\n`);
+          console.log(`📱 Número: ${socket.user?.id || 'Desconhecido'}`);
+
+          qrEnviado = false;
+          qrCount = 0;
+          delete this.tentativasReconexao[usuarioId];
+
+          this.clientes[usuarioId] = {
+            socket: socket,
+            estado: 'conectado',
+            empresaId: empresaId,
+            conectadoEm: new Date(),
+            numero: socket.user?.id || 'desconhecido',
+            nome: socket.user?.name || 'Sem nome',
+          };
+
+          try {
+            await socket.sendPresenceUpdate('available');
+          } catch (e) {
+            console.log('Erro ao atualizar presença:', e.message);
+          }
+
+          console.log('🔄 Aguardando 3 segundos...');
+          setTimeout(async () => {
+            await this.sincronizarHistoricoSimplificado(usuarioId, empresaId, socket);
+          }, 3000);
+        }
+
+        if (connection === 'close') {
+          const statusCode = new Boom(lastDisconnect?.error)?.output?.statusCode;
+          const shouldReconnect = statusCode !== DisconnectReason.loggedOut;
+
+          console.log(`\n⚠️ Desconectado - Código: ${statusCode}`);
+
+          delete this.clientes[usuarioId];
+
+          if (statusCode === DisconnectReason.loggedOut) {
+            console.log(`🔴 Logout detectado`);
+            try {
+              fs.rmSync(caminhoAuth, { recursive: true, force: true });
+            } catch (e) {
+              console.error('Erro ao limpar:', e.message);
+            }
+            delete this.tentativasReconexao[usuarioId];
+          }
+          else if (shouldReconnect && statusCode !== DisconnectReason.timedOut) {
+            const tentativas = this.tentativasReconexao[usuarioId] || 0;
+            this.tentativasReconexao[usuarioId] = tentativas + 1;
+
+            await this.reconectar(usuarioId, empresaId, tentativas);
+          }
+        }
+      });
+
+      socket.ev.on('messages.upsert', async ({ messages }) => {
+        await this.processarMensagensRecebidas(usuarioId, empresaId, messages, socket);
+      });
+
+      socket.ev.on('messages.update', async (updates) => {
+        await this.atualizarStatusMensagens(updates);
+      });
+
+      return socket;
+
+    } catch (erro) {
+      console.error(`❌ Erro ao conectar:`, erro.message);
+      delete this.clientes[usuarioId];
+      throw erro;
+    }
+  }
+
+  async sincronizarHistoricoSimplificado(usuarioId, empresaId, socket) {
+    try {
+      console.log('🔄 Sincronizando...');
+
+      const usuario = await prisma.usuario.findUnique({
+        where: { id: usuarioId },
+        include: { conta: true }
+      });
+
+      if (!usuario) {
+        console.log('⚠️ Usuário não encontrado');
+        return;
+      }
+
+      const contaId = usuario.contaId;
+
+      let conexao = await prisma.conexaoWhatsApp.findFirst({
+        where: {
+          contaId: contaId,
+          numeroWhatsApp: socket.user?.id || 'desconhecido'
+        }
+      });
+
+      if (!conexao) {
+        conexao = await prisma.conexaoWhatsApp.create({
+          data: {
+            numeroWhatsApp: socket.user?.id || 'desconhecido',
+            nomeExibicao: socket.user?.name,
+            status: 'CONECTADO',
+            contaId: contaId
+          }
+        });
+      }
+
+      console.log('✅ Conexão registrada');
+
+    } catch (erro) {
+      console.error('❌ Erro:', erro.message);
+    }
+  }
+
+// --- ATUALIZADO processarMensagensRecebidas (para IGNORAR reações) ---
+// backend/src/servicos/baileys.servico.js
+
+async processarMensagensRecebidas(usuarioId, empresaId, messages, socket, isSincronizacao = false) {
+    try {
+      const usuario = await prisma.usuario.findUnique({ where: { id: usuarioId }, include: { conta: true } });
+      if (!usuario) return;
+      const contaId = usuario.contaId;
+
+      for (const msg of messages) {
+        try {
+          if (msg.key.fromMe && !isSincronizacao) continue;
+
+          const remetente = msg.key.remoteJid;
+          const isGrupo = remetente.endsWith('@g.us');
+          const whatsappId = msg.key.id;
+
+          // Evita processar a mesma mensagem duas vezes (se evento chegar rápido)
+          const existe = await prisma.mensagem.findUnique({ where: { whatsappId: whatsappId } });
+          if (existe) {
+              // console.log(`Msg ${whatsappId} já existe, pulando.`);
+              continue;
+          }
+          
+          const { conteudo, tipo, midiaNome, legendaImagem, mensagemCitada, originalMessage, reactionToKey } = this.extrairConteudoMensagem(msg);
+
+          if (tipo === 'REACAO' && !reactionToKey) {
+             console.warn(`Reação recebida sem reactionToKey: ${whatsappId}. Ignorando.`);
+             continue; // Ignora se não souber a qual mensagem reagir
+          }
+          if (tipo === 'REACAO') {
+            console.log(`👍 Reação '${conteudo}' recebida para msg WA ID: ${reactionToKey?.id}. Salvando...`);
+          }
+
+          let conexao = await prisma.conexaoWhatsApp.findFirst({ where: { contaId: contaId, numeroWhatsApp: socket.user?.id || 'desconhecido' } });
+          if (!conexao) {
+             conexao = await prisma.conexaoWhatsApp.create({ data: { numeroWhatsApp: socket.user?.id || 'desconhecido', nomeExibicao: socket.user?.name, status: 'CONECTADO', contaId: contaId } });
+          }
+
+          let conversa = await prisma.conversa.findFirst({ where: { contaId: contaId, numeroCliente: remetente } });
+          let statusConversa = 'CAIXA_ENTRADA';
+          if (conversa) {
+             if (!msg.key.fromMe && conversa.statusConversa === 'FINALIZADA' && tipo !== 'REACAO') { statusConversa = 'CAIXA_ENTRADA'; }
+             else { statusConversa = conversa.statusConversa; }
+          } else {
+             let nomeCliente = msg.pushName || remetente.split('@')[0];
+             let nomeGrupo = null;
+             if (isGrupo) { try { const metadata = await socket.groupMetadata(remetente); nomeGrupo = metadata.subject; nomeCliente = nomeGrupo; } catch (e) { console.log('Erro ao buscar metadata:', e.message); } }
+             conversa = await prisma.conversa.create({ data: { numeroCliente: remetente, nomeCliente: nomeCliente, isGrupo: isGrupo, nomeGrupo: nomeGrupo, statusConversa: statusConversa, conexaoWhatsAppId: conexao.id, contaId: contaId } });
+          }
+
+          let nomeRemetente = msg.pushName || remetente.split('@')[0];
+          let participantVar = null; 
+          let participantNomeVar = null;
+          if (isGrupo) {
+             participantVar = msg.key.participant;
+             if(participantVar) {
+                 participantNomeVar = msg.pushName || participantVar.split('@')[0];
+             }
+          }
+          let dadosMensagemCitada = {};
+          if (mensagemCitada) { let autorCitado = mensagemCitada.participante || mensagemCitada.autorJid; let nomeAutorCitado = autorCitado?.split('@')[0]; if (autorCitado === socket.user?.id.split(':')[0] + '@s.whatsapp.net') { nomeAutorCitado = 'Você'; } else if (isGrupo && conversa.nomeGrupo) { nomeAutorCitado = `+${autorCitado?.split('@')[0].substring(0, 12)}`; } else { nomeAutorCitado = conversa.nomeCliente; } dadosMensagemCitada = { mensagemCitadaAutor: nomeAutorCitado, mensagemCitadaConteudo: mensagemCitada.conteudo }; }
+
+          // Lógica de Download e URL (sem alterações)
+          let midiaUrl = null;
+          const tiposComMidia = ['IMAGEM', 'VIDEO', 'AUDIO', 'DOCUMENTO', 'FIGURINHA'];
+          if (tiposComMidia.includes(tipo) && originalMessage) { 
+              try { 
+                  console.log(`⬇️ Baixando mídia tipo ${tipo} para msg ID: ${whatsappId}`);
+                  const buffer = await downloadMediaMessage( msg, 'buffer', {}, { logger: pino({ level: 'silent' }), reuploadRequest: socket.updateMediaMessage });
+                  const extensao = this.getExtensaoPorTipo(tipo, msg);
+                  const nomeArquivo = `${crypto.randomBytes(16).toString('hex')}${extensao}`;
+                  const caminhoArquivo = path.join(UPLOADS_DIR, nomeArquivo);
+                  await fs.promises.writeFile(caminhoArquivo, buffer);
+                  const baseUrl = process.env.BASE_URL || `http://localhost:${process.env.PORT || 3000}`;
+                  midiaUrl = `${baseUrl}/uploads/${nomeArquivo}`;
+                  console.log(`✅ Mídia salva: ${midiaUrl}`);
+              } catch (downloadError) { console.error(`❌ Erro ao baixar/salvar mídia para msg ID ${whatsappId}:`, downloadError); }
+           }
+
+          // Lógica de timestamp (sem alterações)
+          let timestampSegundos;
+          if (typeof msg.messageTimestamp === 'number') { timestampSegundos = msg.messageTimestamp; }
+          else if (typeof msg.messageTimestamp === 'object' && msg.messageTimestamp !== null && typeof msg.messageTimestamp.low === 'number') { timestampSegundos = msg.messageTimestamp.low; }
+          else { console.warn(`[ServicoWhatsApp] Timestamp ausente ou inválido para msg ID: ${whatsappId}. Usando Date.now(). MSG:`, msg); timestampSegundos = Math.floor(Date.now() / 1000); }
+          const timestampMsNumber = timestampSegundos * 1000;
+          const dataMensagem = new Date(timestampMsNumber);
+          const timestampMsBigInt = BigInt(timestampSegundos) * BigInt(1000);
+
+          // --- CORREÇÃO: Define replyParaId APENAS para RESPOSTAS, não reações ---
+          let replyParaIdOriginal = null;
+          if (mensagemCitada) { // Se for uma resposta (reply)
+            // Tenta encontrar o ID interno (UUID) da mensagem citada
+            const msgCitadaNoDb = await prisma.mensagem.findUnique({ 
+              where: { whatsappId: mensagemCitada.id },
+              select: { id: true } // Seleciona apenas o ID
+            });
+            if (msgCitadaNoDb) {
+              replyParaIdOriginal = msgCitadaNoDb.id;
+              console.log(`   🔗 Linkando resposta ${whatsappId} para msg original UUID: ${replyParaIdOriginal}`);
+            } else {
+              console.warn(`   ⚠️ Mensagem citada (${mensagemCitada.id}) não encontrada no DB para linkar resposta ${whatsappId}.`);
+            }
+          }
+          // --- FIM CORREÇÃO ---
+
+          await prisma.mensagem.create({
+            data: {
+              whatsappId: whatsappId,
+              conteudo: conteudo,
+              tipo: tipo,
+              direcao: msg.key.fromMe ? 'ENVIADA' : 'RECEBIDA',
+              lida: msg.key.fromMe ? true : false,
+              midiaUrl: midiaUrl,
+              midiaNome: midiaNome || (midiaUrl ? midiaUrl.split('/').pop() : null),
+              legendaImagem: legendaImagem,
+              remetenteNome: nomeRemetente, // Nome de quem enviou a msg/reação
+              participant: participantVar,      
+              participantNome: participantNomeVar, 
+              status: 'enviada',
+              timestamp: timestampMsBigInt,
+              conversaId: conversa.id,
+              contaId: contaId,
+              enviadaEm: dataMensagem,
+              // Campos de Reply (resposta)
+              replyParaId: replyParaIdOriginal, // <<< CORRIGIDO: Só preenche se for resposta
+              mensagemCitadaAutor: dadosMensagemCitada.mensagemCitadaAutor || null,
+              mensagemCitadaConteudo: dadosMensagemCitada.mensagemCitadaConteudo || null,
+              // --- CORREÇÃO: Salva o whatsappId da msg original para REAÇÕES ---
+              reactionToWhatsappId: tipo === 'REACAO' ? reactionToKey?.id : null // <<< CORRIGIDO
+            }
+          });
+
+          // Não atualiza a conversa se for apenas uma reação
+          if (tipo !== 'REACAO') {
+            await prisma.conversa.update({ 
+              where: { id: conversa.id }, 
+              data: { 
+                ultimaMensagemEm: dataMensagem, 
+                naoLidas: !msg.key.fromMe ? { increment: 1 } : undefined, 
+                statusConversa: statusConversa, 
+                nomeCliente: (isGrupo ? conversa.nomeCliente : nomeRemetente) 
+              } 
+            });
+          }
+
+          if (!isSincronizacao && tipo !== 'REACAO') { 
+            console.log(`💬 Mensagem: ${nomeRemetente} - ${conteudo.substring(0, 30)}...`); 
+          }
+
+        } catch (erro) { console.error('Erro ao processar mensagem:', erro.message, `WA_ID: ${msg?.key?.id}`); }
+      }
+    } catch (erro) { console.error('❌ Erro geral em processarMensagensRecebidas:', erro.message); }
+}
+  
+  // --- ATUALIZADO extrairConteudoMensagem (Corrigido o typo 'msgPanel' e adicionado 'reactionToKey') ---
+  extrairConteudoMensagem(msg) {
+    let conteudo = '';
+    let tipo = 'DESCONHECIDO'; // <<< Começa com DESCONHECIDO como fallback
+    let midiaUrl = null; // Removido daqui, será gerado após download
+    let midiaNome = null;
+    let legendaImagem = null;
+    let mensagemCitada = null;
+    let originalMessage = msg.message; // Guarda a mensagem original
+    let reactionToKey = null; // <<< NOVO: Para guardar a key da msg reagida
+
+    // --- Tratamento para Mensagem Efêmera ---
+    if (originalMessage?.ephemeralMessage) {
+        console.log("Processando mensagem efêmera...");
+        originalMessage = originalMessage.ephemeralMessage.message;
+    }
+    // --- Fim Tratamento Efêmera ---
+
+    // Define msgPrincipal para originalMessage (pode ter sido atualizado pelo bloco acima)
+    const msgPrincipal = originalMessage;
+
+    // --- Tratamento para Reação ---
+    if (msgPrincipal?.reactionMessage) {
+        conteudo = msgPrincipal.reactionMessage.text || '❤️'; // Pega o emoji da reação
+        tipo = 'REACAO'; // <<< NOVO TIPO
+        reactionToKey = msgPrincipal.reactionMessage.key; // <<< CAPTURA A KEY
+    // --- Fim Tratamento Reação ---
+
+    // --- Lógica Principal para Tipos de Conteúdo ---
+    } else if (msgPrincipal?.conversation) {
+      conteudo = msgPrincipal.conversation;
+      tipo = 'TEXTO';
+    } else if (msgPrincipal?.extendedTextMessage?.text) {
+      conteudo = msgPrincipal.extendedTextMessage.text;
+      tipo = 'TEXTO';
+    } else if (msgPrincipal?.imageMessage) {
+      conteudo = msgPrincipal.imageMessage.caption || '📷 Imagem';
+      legendaImagem = msgPrincipal.imageMessage.caption;
+      tipo = 'IMAGEM';
+    } else if (msgPrincipal?.videoMessage) {
+      conteudo = msgPrincipal.videoMessage.caption || '🎥 Vídeo';
+      legendaImagem = msgPrincipal.videoMessage.caption;
+      tipo = 'VIDEO';
+    } else if (msgPrincipal?.documentMessage) {
+      conteudo = `📄 ${msgPrincipal.documentMessage.fileName || 'Documento'}`;
+      midiaNome = msgPrincipal.documentMessage.fileName;
+      tipo = 'DOCUMENTO';
+    } else if (msgPrincipal?.audioMessage) {
+      conteudo = '🎵 Áudio';
+      tipo = 'AUDIO';
+    } else if (msgPrincipal?.stickerMessage) {
+      conteudo = '🎨 Figurinha';
+      tipo = 'FIGURINHA';
+    } else if (msgPrincipal?.locationMessage) {
+      conteudo = '📍 Localização';
+      tipo = 'LOCALIZACAO';
+    } else if (msgPrincipal?.contactMessage) {
+      conteudo = '👤 Contato';
+      tipo = 'CONTATO';
+    } else if (msgPrincipal?.pollCreationMessageV3) {
+      conteudo = `📊 Enquete: ${msgPrincipal.pollCreationMessageV3.name}`;
+      tipo = 'ENQUETE';
+    } else if (msg.messageStubType) {
+      // Mensagens de evento de grupo (entrou, saiu, etc)
+      conteudo = `Evento de grupo: ${msg.messageStubType}`;
+      tipo = 'EVENTO';
+    } else if (!conteudo && msgPrincipal) {
+        // Se nenhum tipo acima foi detectado, mas existe msgPrincipal
+        console.warn("Tipo de mensagem não explicitamente tratado:", JSON.stringify(msgPrincipal).substring(0, 200));
+        conteudo = 'Mensagem não suportada'; // Ou deixe vazio ''
+        tipo = 'DESCONHECIDO'; // <<< Fallback final é DESCONHECIDO
+    } else if (!msgPrincipal && !msg.messageStubType) {
+        // Se não houver absolutamente nenhum conteúdo reconhecível
+        conteudo = '';
+        tipo = 'DESCONHECIDO'; // <<< Fallback final é DESCONHECIDO
+    }
+    // --- Fim Lógica Principal ---
+
+
+    // --- Capturar mensagem citada (reply) ---
+    // (Ajustado para buscar em msgPrincipal, que pode ter vindo da ephemeralMessage)
+    
+    // --- CORRIGIDO: msgPanel -> msgPrincipal ---
+    const contextInfo = msgPrincipal?.extendedTextMessage?.contextInfo || msgPrincipal?.imageMessage?.contextInfo || msgPrincipal?.videoMessage?.contextInfo || msgPrincipal?.documentMessage?.contextInfo;
+    
+    if (contextInfo && contextInfo.quotedMessage) {
+        const msgCitada = contextInfo.quotedMessage;
+        let conteudoCitado = 'Mídia';
+
+         if (msgCitada.conversation) { conteudoCitado = msgCitada.conversation; }
+         else if (msgCitada.extendedTextMessage?.text) { conteudoCitado = msgCitada.extendedTextMessage.text; }
+         else if (msgCitada.imageMessage) { conteudoCitado = msgCitada.imageMessage.caption || '📷 Imagem'; }
+         else if (msgCitada.videoMessage) { conteudoCitado = msgCitada.videoMessage.caption || '🎥 Vídeo'; }
+         else if (msgCitada.documentMessage) { conteudoCitado = `📄 ${msgCitada.documentMessage.fileName || 'Documento'}`; }
+
+        mensagemCitada = {
+            id: contextInfo.stanzaId,
+            autorJid: contextInfo.participant,
+            conteudo: conteudoCitado
+        };
+    }
+    // --- Fim Capturar Reply ---
+
+    // Retorna a mensagem original completa (para download) e os dados extraídos
+    return { conteudo, tipo, midiaNome, legendaImagem, mensagemCitada, originalMessage: msg, reactionToKey }; // <<< CORRIGIDO: Retorna 'msg' original e 'reactionToKey'
+  }
+
+
+  // --- NOVA FUNÇÃO AUXILIAR ---
+  getExtensaoPorTipo(tipo, msg) {
+      // Tenta obter do mimetype primeiro, se disponível
+      const msgPrincipal = msg?.message; // Adiciona verificação se msg existe
+      let mimetype = msgPrincipal?.imageMessage?.mimetype ||
+                     msgPrincipal?.videoMessage?.mimetype ||
+                     msgPrincipal?.audioMessage?.mimetype ||
+                     msgPrincipal?.documentMessage?.mimetype ||
+                     msgPrincipal?.stickerMessage?.mimetype;
+
+      if (mimetype) {
+          const parts = mimetype.split('/');
+          const subtype = parts[1]?.split(';')[0]; // Pega subtipo e remove parâmetros como '; codecs=opus'
+          // Mapeamentos comuns
+          if (subtype === 'jpeg') return '.jpg';
+          if (subtype === 'png') return '.png';
+          if (subtype === 'webp') return '.webp'; // Para figurinhas
+          if (subtype === 'mp4') return '.mp4';
+          if (subtype === 'ogg' || subtype === 'oga') return '.ogg'; // Para áudios PTT
+          if (mimetype.startsWith('audio/aac')) return '.aac'; // Adicionado AAC
+          if (subtype === 'mpeg') return '.mp3';
+          if (subtype === 'pdf') return '.pdf';
+          if (subtype === 'vnd.openxmlformats-officedocument.wordprocessingml.document') return '.docx';
+          if (subtype === 'vnd.openxmlformats-officedocument.spreadsheetml.sheet') return '.xlsx';
+          if (subtype === 'vnd.openxmlformats-officedocument.presentationml.presentation') return '.pptx'; // Adicionado PPTX
+          if (subtype === 'msword') return '.doc';
+          if (subtype === 'vnd.ms-excel') return '.xls';
+          if (subtype === 'vnd.ms-powerpoint') return '.ppt'; // Adicionado PPT
+          if (subtype === 'plain') return '.txt'; // Adicionado TXT
+
+          // Se for um tipo conhecido, mas não mapeado, usa o subtipo
+          if (['gif', 'tiff', 'avi', 'mov', 'wav', 'zip', 'rar'].includes(subtype)) return `.${subtype}`; // Adicionado zip/rar
+      }
+
+      // Fallback baseado no tipo principal (se tipo foi definido e não apenas DESCONHECIDO)
+      switch (tipo) {
+          case 'IMAGEM': return '.jpg'; // Fallback genérico
+          case 'VIDEO': return '.mp4';
+          case 'AUDIO': return '.ogg'; // Ogg é comum para áudio PTT
+          case 'DOCUMENTO': return ''; // Difícil adivinhar, melhor depender do nome original se possível
+          case 'FIGURINHA': return '.webp';
+          default: return '';
+      }
+  }
+
+
+  async atualizarStatusMensagens(updates) {
+    try {
+      for (const update of updates) {
+        const { key, update: msgUpdate } = update;
+
+        const mensagem = await prisma.mensagem.findUnique({
+          where: { whatsappId: key.id }
+        });
+
+        if (mensagem) {
+          let novoStatus = mensagem.status;
+
+          if (msgUpdate.status === 2) {
+            novoStatus = 'entregue';
+          } else if (msgUpdate.status === 3) {
+            novoStatus = 'lida';
+          }
+
+          if (novoStatus !== mensagem.status) { // Só atualiza se o status mudou
+            await prisma.mensagem.update({
+              where: { whatsappId: key.id },
+              data: {
+                status: novoStatus,
+                entregue: msgUpdate.status >= 2,
+                lida: msgUpdate.status === 3
+              }
+            });
+          }
+        }
+      }
+    } catch (erro) {
+      console.error('Erro ao atualizar status:', erro.message);
+    }
+  }
+
+  obterMotivoDesconexao(codigo) {
+    const motivos = {
+      401: 'Deslogado', 403: 'Banido', 408: 'Tempo esgotado',
+      411: 'Conflito', 428: 'Conexão perdida', 440: 'Desconectado',
+      500: 'Erro interno', 515: 'Reautenticação necessária', 503: 'Serviço indisponível'
+    };
+    return motivos[codigo] || `Erro (${codigo})`;
+  }
+
+  estaConectado(usuarioId) {
+    return this.clientes[usuarioId]?.estado === 'conectado';
+  }
+
+  async desconectar(usuarioId) {
+    try {
+      const cliente = this.clientes[usuarioId];
+      if (!cliente) { return { sucesso: false, mensagem: 'Cliente não encontrado' }; }
+      console.log(`🔌 Desconectando ${usuarioId}...`);
+      try { await cliente.socket?.logout(); await cliente.socket?.ws?.close(); }
+      catch (e) { console.log('Erro ao fazer logout:', e.message); }
+      const caminhoAuth = this.obterCaminhoAutenticacao(usuarioId, cliente.empresaId);
+      try { fs.rmSync(caminhoAuth, { recursive: true, force: true }); console.log('✅ Sessão removida'); }
+      catch (e) { console.error('Erro ao remover sessão:', e.message); }
+      delete this.clientes[usuarioId]; delete this.tentativasReconexao[usuarioId];
+      return { sucesso: true, mensagem: 'Desconectado' };
+    } catch (erro) { console.error('Erro:', erro.message); delete this.clientes[usuarioId]; throw erro; }
+  }
+
+  obterStatus(usuarioId) {
+    const cliente = this.clientes[usuarioId];
+    return {
+      conectado: cliente?.estado === 'conectado', estado: cliente?.estado || 'desconectado',
+      conectadoEm: cliente?.conectadoEm || null, numero: cliente?.numero || null,
+      nome: cliente?.nome || null, qrGerado: cliente?.qrGerado || null,
+    };
+  }
+
+  // --- Enviar mensagem (Com Reply) ---
+  async enviarMensagem(usuarioId, numero, mensagem, quotedMsgId) {
+    let jid = numero;
+
+    try {
+      const cliente = this.clientes[usuarioId];
+      if (!cliente || cliente.estado !== 'conectado') { 
+        throw new Error('WhatsApp não conectado'); 
+      }
+      const socket = cliente.socket;
+
+      let numeroFormatado = ''; 
+      let isGrupo = numero.endsWith('@g.us');
+      
+      if (!numero.includes('@')) { 
+        numeroFormatado = numero.replace(/\D/g, ''); 
+        if (!numeroFormatado.startsWith('55') && numeroFormatado.length > 8) { 
+          numeroFormatado = '55' + numeroFormatado; 
+        } 
+        jid = numeroFormatado + '@s.whatsapp.net'; 
+        isGrupo = false; 
+      } else { 
+        numeroFormatado = jid.split('@')[0]; 
+      }
+
+      console.log(`📤 Enviando para ${jid} (Grupo: ${isGrupo})`);
+      if (quotedMsgId) { 
+        console.log(`   ↪️ Respondendo a mensagem ID: ${quotedMsgId}`); 
+      }
+
+      let messageOptions = { text: mensagem };
+      let originalMsgFromDb = null;
+
+      if (quotedMsgId) {
+        try {
+          console.log(`   🔎 Buscando mensagem original...`);
+          
+          originalMsgFromDb = await prisma.mensagem.findUnique({
+            where: { whatsappId: quotedMsgId },
+            select: {
+              id: true,
+              whatsappId: true,
+              conteudo: true,
+              tipo: true,
+              direcao: true,
+              participant: true
+            }
+          });
+
+          if (originalMsgFromDb) {
+            console.log("   ✅ Mensagem encontrada:", originalMsgFromDb.tipo);
+
+            let participantJid;
+            if (isGrupo) {
+              participantJid = originalMsgFromDb.participant || jid;
+            } else {
+              if (originalMsgFromDb.direcao === 'RECEBIDA') {
+                participantJid = jid;
+              } else {
+                const meuNumero = socket.user?.id?.split(':')[0] + '@s.whatsapp.net';
+                participantJid = meuNumero;
+              }
+            }
+
+            const contextInfo = {
+              stanzaId: originalMsgFromDb.whatsappId,
+              participant: participantJid,
+              quotedMessage: {
+                conversation: originalMsgFromDb.conteudo
+              }
+            };
+
+            messageOptions = {
+              text: mensagem,
+              contextInfo: contextInfo
+            };
+
+            console.log("   📦 Reply configurado com contextInfo");
+
+          } else { 
+            console.warn(`   ⚠️ Mensagem não encontrada`); 
+          }
+        } catch(findError) { 
+          console.error(`   ❌ Erro:`, findError.message); 
+        }
+      }
+
+      console.log("   ⏳ Enviando...");
+      const resultado = await socket.sendMessage(jid, messageOptions);
+      console.log("   ✅ Enviada!");
+
+      const timestampMsg = resultado.messageTimestamp ? 
+        (typeof resultado.messageTimestamp === 'bigint' ? 
+          resultado.messageTimestamp : 
+          BigInt(resultado.messageTimestamp.low)
+        ) : BigInt(Date.now() / 1000);
+      const dataMensagem = new Date(Number(timestampMsg) * 1000);
+
+      const usuario = await prisma.usuario.findUnique({ where: { id: usuarioId } });
+      if (usuario) {
+        const contaId = usuario.contaId;
+        const conexao = await prisma.conexaoWhatsApp.findFirst({ 
+          where: { contaId: contaId, numeroWhatsApp: cliente.numero } 
+        });
+        
+        if (conexao) {
+          let conversa = await prisma.conversa.findFirst({ 
+            where: { contaId: contaId, numeroCliente: jid } 
+          });
+          
+          if (!conversa) { 
+            let nomeClienteInicial = isGrupo ? jid.split('@')[0] : numeroFormatado; 
+            conversa = await prisma.conversa.create({ 
+              data: { 
+                numeroCliente: jid, 
+                nomeCliente: nomeClienteInicial, 
+                isGrupo: isGrupo, 
+                statusConversa: 'CAIXA_ENTRADA', 
+                conexaoWhatsAppId: conexao.id, 
+                contaId: contaId 
+              } 
+            }); 
+          }
+
+          await prisma.mensagem.create({
+            data: {
+              whatsappId: resultado.key.id,
+              conteudo: mensagem,
+              tipo: 'TEXTO',
+              direcao: 'ENVIADA',
+              lida: true,
+              status: 'enviada',
+              replyParaId: originalMsgFromDb ? originalMsgFromDb.id : null,
+              mensagemCitadaAutor: originalMsgFromDb ? 
+                (originalMsgFromDb.direcao === 'RECEBIDA' ? 'Contato' : 'Você') : null,
+              mensagemCitadaConteudo: originalMsgFromDb ? 
+                originalMsgFromDb.conteudo.substring(0, 200) : null,
+              usuarioId: usuarioId,
+              timestamp: timestampMsg,
+              conversaId: conversa.id,
+              contaId: contaId,
+              enviadaEm: dataMensagem
+            }
+          });
+          
+          await prisma.conversa.update({ 
+            where: { id: conversa.id }, 
+            data: { ultimaMensagemEm: dataMensagem } 
+          });
+        }
+      }
+
+      return { 
+        sucesso: true, 
+        mensagem: 'Enviada', 
+        id: resultado.key.id, 
+        status: 'enviada', 
+        timestamp: dataMensagem.toISOString() 
+      };
+
+    } catch (erro) {
+      console.error('❌ Erro:', erro);
+      throw erro;
+    }
+}
+  
+  // Enviar Mídia (Com salvamento de URL)
+  async enviarMidia(usuarioId, numero, arquivo, legenda) {
+      try {
+        const cliente = this.clientes[usuarioId];
+        if (!cliente || cliente.estado !== 'conectado') { throw new Error('WhatsApp não conectado'); }
+
+        let jid = numero; let numeroFormatado = ''; let isGrupo = numero.endsWith('@g.us');
+        if (!numero.includes('@')) { numeroFormatado = numero.replace(/\D/g, ''); if (!numeroFormatado.startsWith('55') && numeroFormatado.length > 8) { numeroFormatado = '55' + numeroFormatado; } jid = numeroFormatado + '@s.whatsapp.net'; isGrupo = false; }
+        else { numeroFormatado = jid.split('@')[0]; }
+
+        console.log(`📤 Enviando mídia para ${jid} (Grupo: ${isGrupo})`);
+
+        const tipo = arquivo.mimetype.split('/')[0];
+        let mensagemOpcoes = {};
+        let tipoMensagemPrisma = 'DOCUMENTO';
+
+        if (!arquivo || !Buffer.isBuffer(arquivo.buffer)) { throw new Error("O buffer do arquivo está inválido ou ausente."); }
+
+        let midiaUrl = null; let nomeArquivoSalvo = null;
+        try {
+            const extensao = path.extname(arquivo.originalname) || this.getExtensaoPorTipo(tipo.toUpperCase(), { message: null });
+            nomeArquivoSalvo = `${crypto.randomBytes(16).toString('hex')}${extensao}`;
+            const caminhoArquivo = path.join(UPLOADS_DIR, nomeArquivoSalvo);
+            await fs.promises.writeFile(caminhoArquivo, arquivo.buffer);
+            const baseUrl = process.env.BASE_URL || `http://localhost:${process.env.PORT || 3000}`;
+            midiaUrl = `${baseUrl}/uploads/${nomeArquivoSalvo}`;
+            console.log(`✅ Mídia enviada salva: ${midiaUrl}`);
+        } catch (saveError) { console.error(`❌ Erro ao salvar mídia enviada:`, saveError); }
+
+        if (tipo === 'image') { mensagemOpcoes = { image: arquivo.buffer, caption: legenda || undefined }; tipoMensagemPrisma = 'IMAGEM'; }
+        else if (tipo === 'video') { mensagemOpcoes = { video: arquivo.buffer, caption: legenda || undefined }; tipoMensagemPrisma = 'VIDEO'; }
+        else if (tipo === 'audio') { mensagemOpcoes = { audio: arquivo.buffer, mimetype: arquivo.mimetype }; tipoMensagemPrisma = 'AUDIO'; }
+        else { mensagemOpcoes = { document: arquivo.buffer, fileName: arquivo.originalname, mimetype: arquivo.mimetype }; tipoMensagemPrisma = 'DOCUMENTO'; }
+
+        const resultado = await cliente.socket.sendMessage(jid, mensagemOpcoes);
+        const timestampMsg = resultado.messageTimestamp ? (typeof resultado.messageTimestamp === 'bigint' ? resultado.messageTimestamp : BigInt(resultado.messageTimestamp.low)) : BigInt(Date.now() / 1000);
+        const dataMensagem = new Date(Number(timestampMsg) * 1000);
+
+        const usuario = await prisma.usuario.findUnique({ where: { id: usuarioId } });
+        if (usuario) {
+          const contaId = usuario.contaId;
+          const conexao = await prisma.conexaoWhatsApp.findFirst({ where: { contaId: contaId, numeroWhatsApp: cliente.numero } });
+          if (conexao) {
+            let conversa = await prisma.conversa.findFirst({ where: { contaId: contaId, numeroCliente: jid } });
+            if (!conversa) { let nomeClienteInicial = isGrupo ? jid.split('@')[0] : numeroFormatado; conversa = await prisma.conversa.create({ data: { numeroCliente: jid, nomeCliente: nomeClienteInicial, isGrupo: isGrupo, statusConversa: 'CAIXA_ENTRADA', conexaoWhatsAppId: conexao.id, contaId: contaId } }); }
+            await prisma.mensagem.create({
+              data: {
+                whatsappId: resultado.key.id, conteudo: legenda || `📎 ${arquivo.originalname}`, tipo: tipoMensagemPrisma, direcao: 'ENVIADA', lida: true, status: 'enviada',
+                midiaUrl: midiaUrl, // <<< SALVA URL
+                midiaNome: arquivo.originalname, legendaImagem: tipoMensagemPrisma === 'IMAGEM' || tipoMensagemPrisma === 'VIDEO' ? legenda : null,
+                usuarioId: usuarioId, timestamp: timestampMsg, conversaId: conversa.id, contaId: contaId, enviadaEm: dataMensagem
+              }
+            });
+            await prisma.conversa.update({ where: { id: conversa.id }, data: { ultimaMensagemEm: dataMensagem } });
+          }
+        }
+        return { sucesso: true, id: resultado.key.id, status: 'enviada', timestamp: dataMensagem.toISOString() };
+      } catch (erro) { console.error('❌ Erro geral em enviarMidia:', erro.message); throw erro; }
+  }
+
+
+  listarClientesConectados() {
+    const lista = [];
+    for (const [usuarioId, cliente] of Object.entries(this.clientes)) {
+      lista.push({ usuarioId, empresaId: cliente.empresaId, estado: cliente.estado, numero: cliente.numero, nome: cliente.nome, conectadoEm: cliente.conectadoEm, });
+    }
+    return lista;
+  }
+
+  // Obter Mensagens da Conversa (com campos de reply)
+// --- ATUALIZADO: obterMensagensConversa (Corrige 'novasMensagensNormaisNoLote') ---
+async obterMensagensConversa(usuarioId, numeroCliente, limite = 50, offset = 0) {
+    try {
+      const usuario = await prisma.usuario.findUnique({ where: { id: usuarioId } });
+      if (!usuario) { return { total: 0, mensagens: [], temMais: false }; }
+      const conversa = await prisma.conversa.findFirst({ where: { contaId: usuario.contaId, numeroCliente: numeroCliente } });
+      if (!conversa) { return { total: 0, mensagens: [], temMais: false }; }
+
+      // Total de mensagens NÃO-REAÇÃO na conversa inteira (para 'temMais')
+      const totalMensagensNormais = await prisma.mensagem.count({ 
+        where: { 
+          conversaId: conversa.id,
+          tipo: { not: 'REACAO' } 
+        } 
+      });
+
+      // Busca o lote atual (incluindo reações)
+      const mensagensDoBanco = await prisma.mensagem.findMany({
+        where: { conversaId: conversa.id }, 
+        orderBy: { enviadaEm: 'desc' },
+        skip: offset,
+        take: limite,
+        select: {
+            id: true, 
+            whatsappId: true,
+            conteudo: true,
+            tipo: true,
+            direcao: true,
+            lida: true,
+            midiaUrl: true,
+            midiaNome: true,
+            legendaImagem: true,
+            remetenteNome: true,
+            participant: true,
+            participantNome: true,
+            replyParaId: true, 
+            reactionToWhatsappId: true, 
+            mensagemCitadaAutor: true,
+            mensagemCitadaConteudo: true,
+            status: true,
+            timestamp: true,
+            enviadaEm: true,
+            usuarioId: true,
+            nomeUsuario: true
+        }
+      });
+
+      // Mapeia para o formato do frontend
+      const mensagensFormatadas = mensagensDoBanco.reverse().map(msg => ({
+        id: msg.whatsappId,         
+        internalId: msg.id,        
+        de: msg.direcao === 'RECEBIDA' ? conversa.numeroCliente : 'eu',
+        nome: conversa.nomeCliente, 
+        participante: msg.participant,
+        participantNome: msg.participantNome, 
+        remetenteNome: msg.remetenteNome, 
+        mensagem: msg.conteudo,
+        data: msg.enviadaEm,
+        timestamp: msg.timestamp ? Number(msg.timestamp) : null,
+        tipo: msg.tipo.toLowerCase(),
+        status: msg.status,
+        direcao: msg.direcao,
+        lida: msg.lida,
+        midiaUrl: msg.midiaUrl,
+        midiaNome: msg.midiaNome,
+        legendaImagem: msg.legendaImagem,
+        nomeUsuario: msg.nomeUsuario, 
+        isGrupo: conversa.isGrupo,
+        replyParaId: msg.replyParaId, 
+        reactionToWhatsappId: msg.reactionToWhatsappId, 
+        mensagemCitadaAutor: msg.mensagemCitadaAutor,
+        mensagemCitadaConteudo: msg.mensagemCitadaConteudo
+      }));
+
+      // --- CORREÇÃO: Calcula 'temMais' corretamente ---
+      // Conta quantas mensagens normais vieram NESTE lote
+      const mensagensNormaisNesteLote = mensagensDoBanco.filter(m => m.tipo !== 'REACAO').length;
+      // Calcula se há mais mensagens normais a carregar (baseado no total de mensagens normais)
+      const temMais = (offset + mensagensNormaisNesteLote) < totalMensagensNormais; 
+      // --- FIM CORREÇÃO ---
+
+      // Retorna o total GERAL (incluindo reações, pode ser útil para info)
+      const totalGeral = await prisma.mensagem.count({ where: { conversaId: conversa.id } });
+
+      return { total: totalGeral, mensagens: mensagensFormatadas, temMais: temMais };
+    } catch (erro) {
+       console.error('❌ Erro ao obter mensagens da conversa:', erro); 
+       return { total: 0, mensagens: [], temMais: false };
+    }
+  }
+// --- FIM ATUALIZAÇÃO ---
+
+  async obterConversas(usuarioId, filtro = 'CAIXA_ENTRADA', pesquisa = '') {
+    try {
+      const usuario = await prisma.usuario.findUnique({ where: { id: usuarioId } });
+      if (!usuario) { return []; }
+      const where = { contaId: usuario.contaId };
+      if (filtro && filtro !== 'TODAS') { where.statusConversa = filtro; }
+      if (pesquisa && pesquisa.trim()) { where.OR = [ { nomeCliente: { contains: pesquisa, mode: 'insensitive' } }, { numeroCliente: { contains: pesquisa } }, { nomeGrupo: { contains: pesquisa, mode: 'insensitive' } } ]; }
+      const conversas = await prisma.conversa.findMany({ where: where, include: { mensagens: { orderBy: { enviadaEm: 'desc' }, take: 1 }, _count: { select: { mensagens: true } } }, orderBy: [ { fixada: 'desc' }, { ultimaMensagemEm: 'desc' } ] });
+      return conversas.map(conv => { const ultimaMensagem = conv.mensagens[0]; return { id: conv.id, contato: conv.numeroCliente, nome: conv.nomeCliente, isGrupo: conv.isGrupo, nomeGrupo: conv.nomeGrupo, fotoUrl: conv.fotoUrl, ultimaMensagem: ultimaMensagem ? { id: ultimaMensagem.whatsappId, mensagem: ultimaMensagem.conteudo, data: ultimaMensagem.enviadaEm, tipo: ultimaMensagem.tipo, direcao: ultimaMensagem.direcao, lida: ultimaMensagem.lida } : null, naoLidas: conv.naoLidas, fixada: conv.fixada, status: conv.statusConversa, totalMensagens: conv._count.mensagens, ultimaMensagemEm: conv.ultimaMensagemEm }; });
+    } catch (erro) { console.error('Erro ao obter conversas:', erro.message); return []; }
+  }
+
+  async atualizarStatusConversa(usuarioId, numeroCliente, novoStatus) {
+    try {
+      const usuario = await prisma.usuario.findUnique({ where: { id: usuarioId } });
+      if (!usuario) { throw new Error('Usuário não encontrado'); }
+      const conversa = await prisma.conversa.findFirst({ where: { contaId: usuario.contaId, numeroCliente: numeroCliente } });
+      if (!conversa) { throw new Error('Conversa não encontrada'); }
+      await prisma.conversa.update({ where: { id: conversa.id }, data: { statusConversa: novoStatus, finalizadaEm: novoStatus === 'FINALIZADA' ? new Date() : null } });
+      return { sucesso: true, mensagem: 'Status atualizado' };
+    } catch (erro) { console.error('Erro ao atualizar status:', erro.message); throw erro; }
+  }
+
+  async marcarComoLida(usuarioId, numeroCliente) {
+    try {
+      const usuario = await prisma.usuario.findUnique({ where: { id: usuarioId } });
+      if (!usuario) { throw new Error('Usuário não encontrado'); }
+      const conversa = await prisma.conversa.findFirst({ where: { contaId: usuario.contaId, numeroCliente: numeroCliente } });
+      if (!conversa) { throw new Error('Conversa não encontrada'); }
+      await prisma.conversa.update({ where: { id: conversa.id }, data: { naoLidas: 0 } });
+      return { sucesso: true };
+    } catch (erro) { console.error('Erro ao marcar como lida:', erro.message); throw erro; }
+  }
+
+  async toggleFixarConversa(usuarioId, numeroCliente) {
+    try {
+      const usuario = await prisma.usuario.findUnique({ where: { id: usuarioId } });
+      if (!usuario) { throw new Error('Usuário não encontrado'); }
+      const conversa = await prisma.conversa.findFirst({ where: { contaId: usuario.contaId, numeroCliente: numeroCliente } });
+      if (!conversa) { throw new Error('Conversa não encontrada'); }
+      await prisma.conversa.update({ where: { id: conversa.id }, data: { fixada: !conversa.fixada } });
+      return { sucesso: true, fixada: !conversa.fixada };
+    } catch (erro) { console.error('Erro ao fixar conversa:', erro.message); throw erro; }
+  }
+
+  async sincronizarHistoricoManual(usuarioId) {
+    try {
+      const cliente = this.clientes[usuarioId];
+      if (!cliente || cliente.estado !== 'conectado') { throw new Error('WhatsApp não conectado'); }
+      console.log('🔄 Sincronizando...');
+      const usuario = await prisma.usuario.findUnique({ where: { id: usuarioId } });
+      if (!usuario) { throw new Error('Usuário não encontrado'); }
+      let totalConversas = 0; let totalMensagens = 0;
+      try { const chats = await cliente.socket.groupFetchAllParticipating?.() || {};
+        for (const chatId in chats) { try { const chat = chats[chatId]; const messages = await cliente.socket.fetchMessagesFromWA?.( chat.id, 50, { before: undefined } ); if (messages && messages.length > 0) { await this.processarMensagensRecebidas( usuarioId, cliente.empresaId, messages, cliente.socket, true ); totalMensagens += messages.length; } totalConversas++; await new Promise(resolve => setTimeout(resolve, 100)); } catch (erro) { console.error(`Erro ao sincronizar chat ${chatId}:`, erro.message); } }
+      } catch (erro) { console.error('Erro ao buscar chats:', erro.message); }
+      console.log(`✅ Sincronização concluída: ${totalConversas} conversas, ${totalMensagens} mensagens.`);
+      return { sucesso: true, totalConversas: totalConversas, totalMensagens: totalMensagens };
+    } catch (erro) { console.error('❌ Erro na sincronização manual:', erro.message); throw erro; }
+  }
+
+  // ⭐ Enviar Reação ⭐
+// ⭐ ATUALIZADO: enviarReacao (Salva a reação enviada no DB) ⭐
+async enviarReacao(usuarioId, numero, mensagemId, emoji) {
+    try {
+      const cliente = this.clientes[usuarioId];
+      if (!cliente || cliente.estado !== 'conectado') {
+        throw new Error('WhatsApp não conectado');
+      }
+      const socket = cliente.socket;
+
+      let jid = numero;
+      let numeroFormatado = '';
+      let isGrupo = numero.endsWith('@g.us');
+
+      if (!numero.includes('@')) {
+        numeroFormatado = numero.replace(/\D/g, '');
+        if (!numeroFormatado.startsWith('55') && numeroFormatado.length > 8) {
+          numeroFormatado = '55' + numeroFormatado;
+        }
+        jid = numeroFormatado + '@s.whatsapp.net';
+        isGrupo = false;
+      } else {
+        numeroFormatado = jid.split('@')[0];
+      }
+
+      console.log(`👍 Enviando reação ${emoji} para mensagem ${mensagemId} em ${jid}`);
+
+      // Busca a mensagem original no banco (PARA PEGAR participant se for grupo)
+      // Não precisamos mais do ID interno dela aqui, pois salvaremos reactionToWhatsappId
+      const mensagemOriginal = await prisma.mensagem.findUnique({
+        where: { whatsappId: mensagemId },
+        select: {
+          participant: true, // Necessário para a key em grupos
+          direcao: true      // Necessário para fromMe na key
+        }
+      });
+
+      if (!mensagemOriginal) {
+        // Se a mensagem original não estiver no DB, ainda tenta enviar,
+        // mas avisa, pois pode falhar em grupos se participant for necessário.
+        console.warn(`   ⚠️ Mensagem original ${mensagemId} não encontrada no DB. Reação pode falhar em grupos.`);
+      }
+
+      // Monta a key da mensagem a ser reagida
+      const key = {
+        remoteJid: jid,
+        id: mensagemId,
+        fromMe: mensagemOriginal?.direcao === 'ENVIADA' // Define fromMe com base na direção da msg original
+      };
+
+      // Adiciona participant se for grupo E a mensagem original foi encontrada E tinha participant
+      if (isGrupo && mensagemOriginal?.participant) {
+        key.participant = mensagemOriginal.participant;
+      }
+
+      // Prepara a mensagem de reação para Baileys
+      const reactionMessage = {
+        react: {
+          text: emoji,
+          key: key
+        }
+      };
+
+      // --- Envia a reação via Baileys ---
+      const resultado = await cliente.socket.sendMessage(jid, reactionMessage);
+      console.log(`✅ Reação enviada via WA (ID da reação: ${resultado.key.id})`);
+
+      // --- SALVAR REAÇÃO ENVIADA NO BANCO DE DADOS ---
+      try {
+          const timestampMsg = resultado.messageTimestamp ?
+            (typeof resultado.messageTimestamp === 'bigint' ?
+              resultado.messageTimestamp :
+              BigInt(resultado.messageTimestamp.low)
+            ) : BigInt(Math.floor(Date.now() / 1000)); // Usar segundos se timestamp faltar
+          const dataMensagem = new Date(Number(timestampMsg) * 1000);
+
+          const usuario = await prisma.usuario.findUnique({ where: { id: usuarioId }, select: { contaId: true } }); // Pega contaId
+          if (!usuario) throw new Error(`Usuário ${usuarioId} não encontrado para salvar reação.`);
+          const contaId = usuario.contaId;
+
+          const conexao = await prisma.conexaoWhatsApp.findFirst({
+            where: { contaId: contaId, numeroWhatsApp: cliente.numero }
+          });
+          if (!conexao) throw new Error(`Conexão WhatsApp não encontrada para ${cliente.numero}`);
+
+          let conversa = await prisma.conversa.findFirst({
+            where: { contaId: contaId, numeroCliente: jid }
+          });
+          if (!conversa) {
+             let nomeClienteInicial = isGrupo ? jid.split('@')[0] : numeroFormatado; // Nome provisório
+             // Tenta buscar nome do grupo se for grupo
+             if (isGrupo) {
+                 try {
+                     const metadata = await socket.groupMetadata(jid);
+                     nomeClienteInicial = metadata.subject;
+                 } catch (e) { console.warn("Não foi possível buscar nome do grupo ao criar conversa para reação."); }
+             }
+             conversa = await prisma.conversa.create({
+               data: { numeroCliente: jid, nomeCliente: nomeClienteInicial, isGrupo: isGrupo, nomeGrupo: isGrupo ? nomeClienteInicial : null, statusConversa: 'CAIXA_ENTRADA', conexaoWhatsAppId: conexao.id, contaId: contaId }
+             });
+             console.log(`   🔄 Conversa criada para reação enviada: ${conversa.id}`);
+          }
+
+          // Salva a reação no banco
+          await prisma.mensagem.create({
+            data: {
+              whatsappId: resultado.key.id,      // ID da própria reação
+              conteudo: emoji,                   // O emoji
+              tipo: 'REACAO',
+              direcao: 'ENVIADA',                // Foi você quem enviou
+              lida: true,                        // Reações enviadas são consideradas "lidas"
+              status: 'enviada',                 // Status inicial
+              reactionToWhatsappId: mensagemId,  // Link para o WA ID da msg original
+              usuarioId: usuarioId,              // Quem enviou (usuário do sistema)
+              timestamp: timestampMsg,
+              conversaId: conversa.id,
+              contaId: contaId,
+              enviadaEm: dataMensagem,
+              // Campos de reply/citação ficam null para reações
+              replyParaId: null,
+              mensagemCitadaAutor: null,
+              mensagemCitadaConteudo: null,
+              // Campos de participante (não se aplicam diretamente à reação em si, mas a quem enviou)
+              remetenteNome: cliente.nome || 'Você', // Nome do usuário do sistema conectado
+              participant: null, // Não há 'participante' específico para a reação enviada por você
+              participantNome: null
+            }
+          });
+          console.log(`   💾 Reação enviada salva no DB.`);
+
+          // IMPORTANTE: Não atualizamos 'ultimaMensagemEm' da conversa com reações
+          // await prisma.conversa.update({ where: { id: conversa.id }, data: { ultimaMensagemEm: dataMensagem } });
+
+      } catch (dbError) {
+          console.error(`❌ Erro ao salvar reação enviada no DB:`, dbError.message);
+          // Não lança o erro para fora, pois a reação foi enviada com sucesso pelo WA
+      }
+      // --- FIM SALVAR NO DB ---
+
+      return {
+        sucesso: true,
+        mensagem: 'Reação enviada',
+        id: resultado.key.id // Retorna o ID da reação
+      };
+
+    } catch (erro) {
+      console.error('❌ Erro geral ao enviar reação:', erro.message);
+      // Log extra para depuração
+      console.error(erro.stack);
+      throw erro; // Lança o erro para o controlador lidar
+    }
+}
+}
+
+module.exports = new ServicoWhatsApp();
+// --- FIM DO CÓDIGO ATUALIZADO ---

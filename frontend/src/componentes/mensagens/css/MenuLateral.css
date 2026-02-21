@@ -1,0 +1,324 @@
+/* frontend/src/componentes/mensagens/css/MenuLateral.css */
+
+.menu-lateral-container {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  
+  width: 48px;
+  height: 100%;
+
+  background: #f8f9fa; 
+  border-right: 1px solid #e5e7eb; 
+  box-shadow: none;
+
+  transition: width 0.3s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.3s, border-color 0.3s;
+}
+
+.menu-lateral-container.expandido {
+  width: 240px;
+  box-shadow: none;
+  border-right: 1px solid #d1d5db;
+}
+
+/* Header */
+.menu-lateral-header {
+  padding: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 56px;
+  flex-shrink: 0;
+  background: transparent;
+  border-bottom: none; 
+  gap: 8px;
+}
+
+.menu-lateral-container.expandido .menu-lateral-header {
+  justify-content: space-between;
+  padding: 10px 16px;
+}
+
+/* Corpo do Menu */
+.menu-lateral-body {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 8px 4px;
+}
+
+/* Itens Topo */
+.menu-lateral-items-top {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Espaçador Flexível */
+.menu-spacer {
+  flex: 1;
+  min-height: 20px;
+}
+
+/* Itens Fundo */
+.menu-lateral-items-bottom {
+  display: flex;
+  flex-direction: column;
+  margin-top: auto;
+  border-top: 1px solid transparent;
+}
+.menu-lateral-container.expandido .menu-lateral-items-bottom {
+  border-top: 1px solid rgba(0,0,0,0.05);
+  padding-top: 8px;
+}
+
+/* Scrollbar invisível mas funcional */
+.menu-lateral-body::-webkit-scrollbar {
+  width: 4px;
+}
+.menu-lateral-body::-webkit-scrollbar-track {
+  background: transparent;
+}
+.menu-lateral-body::-webkit-scrollbar-thumb {
+  background: transparent;
+}
+.menu-lateral-body:hover::-webkit-scrollbar-thumb {
+  background: #d1d5db; 
+  border-radius: 2px;
+}
+
+/* Toggle Button */
+.menu-toggle-btn {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border: none;
+  border-radius: 8px;
+  background: #e9ecef; 
+  color: #4b5563;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.menu-toggle-btn:hover {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: white;
+  transform: scale(1.1);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+/* Logo */
+.menu-lateral-logo-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+}
+
+.menu-lateral-logo {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+  flex-shrink: 0;
+}
+
+.menu-lateral-titulo {
+  font-size: 16px;
+  font-weight: 800;
+  background: linear-gradient(135deg, #111827 0%, #374151 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  white-space: nowrap;
+}
+
+/* Botão do Item */
+.menu-item-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 4px;
+  margin-bottom: 4px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+  overflow: hidden;
+  background: transparent;
+}
+
+.menu-lateral-container.expandido .menu-item-btn {
+  justify-content: flex-start;
+  padding: 6px 12px;
+}
+
+/* Wrapper do Ícone */
+.menu-item-icon-wrapper {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  border: 2px solid transparent;
+  background: #ffffff; 
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+
+.menu-item-icon-wrapper svg {
+  color: #6b7280; /* Cor padrão inativa no light mode */
+}
+
+.menu-item-label {
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+  flex: 1;
+  text-align: left;
+  color: #6b7280;
+  opacity: 0;
+  transform: translateX(-8px);
+  transition: opacity 0.2s ease 0.05s, transform 0.2s ease 0.05s, color 0.2s;
+}
+
+.menu-lateral-container.expandido .menu-item-label {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+/* HOVERS E ATIVOS (MODO CLARO) */
+.menu-item-btn:hover {
+  transform: translateX(2px);
+}
+
+.menu-item-btn:hover .menu-item-icon-wrapper {
+  transform: scale(1.1) rotate(5deg);
+}
+
+.menu-item-btn:hover,
+.menu-item-btn.ativo {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+.menu-item-btn:hover .menu-item-label,
+.menu-item-btn.ativo .menu-item-label,
+.menu-item-btn:hover .menu-item-icon-wrapper svg,
+.menu-item-btn.ativo .menu-item-icon-wrapper svg {
+  color: #ffffff !important;
+}
+
+.menu-item-btn:hover .menu-item-icon-wrapper,
+.menu-item-btn.ativo .menu-item-icon-wrapper {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.3);
+  box-shadow: none;
+}
+
+/* Footer */
+.menu-lateral-footer {
+  padding: 16px 12px;
+  border-top: 1px solid #e5e7eb;
+  flex-shrink: 0;
+  text-align: center;
+  color: #9ca3af;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+/* ============================================================
+   🌑 TEMA ESCURO (Dark Mode - Estilo WhatsApp Web)
+   ============================================================ */
+
+.menu-lateral-container.tema-escuro {
+  background: #111b21; /* Fundo mais escuro */
+  border-right-color: #2a3942; /* Borda escura */
+}
+
+.menu-lateral-container.tema-escuro.expandido {
+  border-right-color: #2a3942;
+}
+
+/* Títulos do Header no Escuro */
+.menu-lateral-container.tema-escuro .menu-lateral-titulo {
+  background: linear-gradient(135deg, #e9edef 0%, #aebac1 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+}
+
+/* Botão de Toggle no Escuro */
+.menu-lateral-container.tema-escuro .menu-toggle-btn {
+  background: #202c33;
+  color: #aebac1;
+}
+
+.menu-lateral-container.tema-escuro .menu-toggle-btn:hover {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: #ffffff;
+}
+
+/* Itens Inativos no Escuro */
+.menu-lateral-container.tema-escuro .menu-item-icon-wrapper {
+  background: #202c33; /* Fundo do ícone */
+  border-color: transparent;
+  box-shadow: none;
+}
+
+.menu-lateral-container.tema-escuro .menu-item-icon-wrapper svg {
+  color: #8696a0; /* Ícone cinza claro */
+}
+
+.menu-lateral-container.tema-escuro .menu-item-label {
+  color: #d1d7db; /* Texto claro */
+}
+
+/* Itens Ativos/Hover no Escuro (Mantém o verde, mas ajusta o wrapper) */
+.menu-lateral-container.tema-escuro .menu-item-btn.ativo,
+.menu-lateral-container.tema-escuro .menu-item-btn:hover {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%); /* Mantém o destaque verde */
+}
+
+.menu-lateral-container.tema-escuro .menu-item-btn.ativo .menu-item-icon-wrapper,
+.menu-lateral-container.tema-escuro .menu-item-btn:hover .menu-item-icon-wrapper {
+  background: rgba(0, 0, 0, 0.2); /* Wrapper do ícone escurecido sobre o verde */
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Divisórias no Escuro */
+.menu-lateral-container.tema-escuro .menu-lateral-items-bottom {
+  border-top-color: transparent;
+}
+
+.menu-lateral-container.tema-escuro.expandido .menu-lateral-items-bottom {
+  border-top-color: #2a3942;
+}
+
+/* Footer no Escuro */
+.menu-lateral-container.tema-escuro .menu-lateral-footer {
+  border-top-color: #2a3942;
+  color: #8696a0;
+}
+
+/* Scrollbar no Escuro */
+.menu-lateral-container.tema-escuro .menu-lateral-body:hover::-webkit-scrollbar-thumb {
+  background: #37404a;
+}

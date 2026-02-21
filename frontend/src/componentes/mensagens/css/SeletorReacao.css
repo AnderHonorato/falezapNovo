@@ -1,0 +1,88 @@
+/* frontend/src/componentes/mensagens/css/SeletorReacao.css */
+
+.seletor-reacao-container {
+  /* Estilo Glassmorphism do PainelAnotacoes */
+  background: linear-gradient(135deg, rgba(30, 41, 59, 0.9) 0%, rgba(15, 23, 42, 0.95) 100%);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  
+  /* Borda e Sombra do PainelAnotacoes */
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 40px; /* Mantém o formato de pílula */
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
+  
+  padding: 6px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  
+  /* Animação de entrada */
+  animation: seletorReacaoFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  transform-origin: bottom left;
+}
+
+@keyframes seletorReacaoFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9) translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* Light Theme */
+.light-theme .seletor-reacao-container {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(248, 250, 252, 0.95) 100%);
+  border-color: rgba(226, 232, 240, 0.8);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.15);
+}
+
+/* Botões de Emoji e "Mais" */
+.reacao-btn {
+  width: 44px;
+  height: 44px;
+  border: none;
+  background: transparent;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.reacao-btn:hover {
+  background: rgba(148, 163, 184, 0.1);
+  transform: scale(1.2) translateY(-2px);
+}
+
+.light-theme .reacao-btn:hover {
+  background: rgba(226, 232, 240, 0.8);
+}
+
+.reacao-btn-emoji {
+  font-size: 26px; /* Aumenta o emoji */
+  padding-bottom: 4px; /* Ajuste de alinhamento */
+}
+
+.reacao-btn-mais {
+  color: #94a3b8;
+}
+
+.light-theme .reacao-btn-mais {
+  color: #64748b;
+}
+
+/* Divisor */
+.reacao-divider {
+  width: 1px;
+  height: 32px;
+  background: rgba(148, 163, 184, 0.2);
+  margin: 0 4px;
+}
+
+.light-theme .reacao-divider {
+  background: rgba(203, 213, 225, 0.7);
+}

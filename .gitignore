@@ -1,0 +1,19 @@
+# Dependências
+node_modules/
+**/node_modules/
+
+# Histórico e Cache
+.history/
+.vercel
+.cache/
+.DS_Store
+
+# Backend - Arquivos de dados e uploads
+backend/uploads/
+backend/rag-chunks.json
+backend/rag-output.json
+backend/.env
+
+# Build/Dist
+dist/
+build/

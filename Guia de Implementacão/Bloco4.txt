@@ -1,0 +1,497 @@
+## BLOCO 4: MENSAGENS INTERATIVAS E TEMPLATES
+
+### 25. Mensagens com botões de resposta rápida (Reply Buttons)
+**Descrição:** Mensagem com até 3 botões clicáveis que enviam resposta pré-definida.
+
+**É possível implementar via API:** Sim
+
+**Como implementar:**
+- Type: `interactive`
+- Subtype: `button`
+- Máximo 3 botões por mensagem
+- Botões retornam texto ao serem clicados
+
+**Exemplo prático:**
+```javascript
+async function enviarMensagemComBotoes(destinatario) {
+  await fetch(`https://graph.facebook.com/v21.0/${PHONE_NUMBER_ID}/messages`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${ACCESS_TOKEN}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      messaging_product: "whatsapp",
+      to: destinatario,
+      type: "interactive",
+      interactive: {
+        type: "button",
+        body: {
+          text: "Como podemos ajudar você hoje?"
+        },
+        action: {
+          buttons: [
+            {
+              type: "reply",
+              reply: {
+                id: "btn_1",
+                title: "Suporte"
+              }
+            },
+            {
+              type: "reply",
+              reply: {
+                id: "btn_2",
+                title: "Vendas"
+              }
+            },
+            {
+              type: "reply",
+              reply: {
+                id: "btn_3",
+                title: "Financeiro"
+              }
+            }
+          ]
+        }
+      }
+    })
+  });
+}
+```
+
+**Observações:** Títulos dos botões: máximo 20 caracteres. IDs únicos para identificar qual botão foi clicado. Botões expiram após envio - não podem ser reutilizados.
+
+---
+
+### 26. Receber resposta de botões
+**Descrição:** Capturar qual botão o usuário clicou.
+
+**É possível implementar via API:** Sim
+
+**Como implementar:**
+- Webhook recebe type: `interactive`
+- Campo `interactive.button_reply` contém id e title do botão clicado
+
+**Exemplo prático:**
+```javascript
+if (message?.type === 'interactive') {
+  const interactiveType = message.interactive.type;
+  
+  if (interactiveType === 'button_reply') {
+    const buttonReply = message.interactive.button_reply;
+    const buttonId = buttonReply.id; // Ex: "btn_1"
+    const buttonTitle = buttonReply.title; // Ex: "Suporte"
+    
+    salvarMensagemNoBanco({
+      from: message.from,
+      type: 'button_reply',
+      buttonId: buttonId,
+      buttonTitle: buttonTitle,
+      timestamp: new Date()
+    });
+    
+    // Processar ação baseada no botão
+    if (buttonId === 'btn_1') {
+      // Direcionar para atendimento de suporte
+      enviarMensagem(message.from, "Redirecionando para suporte...");
+    }
+  }
+}
+```
+
+**Observações:** Use IDs únicos para identificar ações. Title é apenas visual, use ID para lógica.
+
+---
+
+### 27. Listas interativas (List Messages)
+**Descrição:** Mensagem com botão que abre menu de até 10 opções organizadas em seções.
+
+**É possível implementar via API:** Sim
+
+**Como implementar:**
+- Type: `interactive`
+- Subtype: `list`
+- Máximo 10 itens, organizados em até 10 seções
+- Cada item tem título, descrição e ID único
+
+**Exemplo prático:**
+```javascript
+async function enviarLista(destinatario) {
+  await fetch(`https://graph.facebook.com/v21.0/${PHONE_NUMBER_ID}/messages`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${ACCESS_TOKEN}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      messaging_product: "whatsapp",
+      to: destinatario,
+      type: "interactive",
+      interactive: {
+        type: "list",
+        header: {
+          type: "text",
+          text: "Nossos Produtos"
+        },
+        body: {
+          text: "Escolha uma categoria para ver os produtos disponíveis"
+        },
+        footer: {
+          text: "Produtos em estoque"
+        },
+        action: {
+          button: "Ver Opções",
+          sections: [
+            {
+              title: "Eletrônicos",
+              rows: [
+                {
+                  id: "prod_1",
+                  title: "Smartphone",
+                  description: "Últimos modelos disponíveis"
+                },
+                {
+                  id: "prod_2",
+                  title: "Notebook",
+                  description: "Alta performance"
+                }
+              ]
+            },
+            {
+              title: "Eletrodomésticos",
+              rows: [
+                {
+                  id: "prod_3",
+                  title: "Geladeira",
+                  description: "Frost free 400L"
+                },
+                {
+                  id: "prod_4",
+                  title: "Fogão",
+                  description: "5 bocas com forno"
+                }
+              ]
+            }
+          ]
+        }
+      }
+    })
+  });
+}
+```
+
+**Observações:** 
+- Título do botão: máximo 20 caracteres
+- Título do item: máximo 24 caracteres
+- Descrição: máximo 72 caracteres
+- Título da seção: máximo 24 caracteres
+
+---
+
+### 28. Receber resposta de lista
+**Descrição:** Capturar qual item da lista foi selecionado.
+
+**É possível implementar via API:** Sim
+
+**Como implementar:**
+- Webhook recebe type: `interactive`
+- Campo `interactive.list_reply` contém id, title e description
+
+**Exemplo prático:**
+```javascript
+if (message?.type === 'interactive') {
+  const interactiveType = message.interactive.type;
+  
+  if (interactiveType === 'list_reply') {
+    const listReply = message.interactive.list_reply;
+    const itemId = listReply.id; // Ex: "prod_1"
+    const itemTitle = listReply.title; // Ex: "Smartphone"
+    const itemDescription = listReply.description;
+    
+    salvarMensagemNoBanco({
+      from: message.from,
+      type: 'list_reply',
+      itemId: itemId,
+      itemTitle: itemTitle,
+      itemDescription: itemDescription,
+      timestamp: new Date()
+    });
+    
+    // Processar seleção
+    if (itemId === 'prod_1') {
+      enviarCatalogoProduto(message.from, 'smartphones');
+    }
+  }
+}
+```
+
+**Observações:** Listas são melhores que botões para muitas opções. Use IDs para lógica de negócio.
+
+---
+
+### 29. Mensagens de template (Template Messages)
+**Descrição:** Mensagens pré-aprovadas pelo WhatsApp para iniciar conversas ou enviar notificações.
+
+**É possível implementar via API:** Sim
+
+**Como implementar:**
+- Templates devem ser criados e aprovados no Meta Business Manager
+- Type: `template`
+- Usado para iniciar conversas fora da janela de 24h
+- Suporta variáveis dinâmicas, botões, headers com mídia
+
+**Exemplo prático:**
+```javascript
+// 1. Criar template no Meta Business Manager (exemplo):
+// Nome: "pedido_confirmado"
+// Categoria: TRANSACTIONAL
+// Texto: "Olá {{1}}, seu pedido #{{2}} foi confirmado! Total: R$ {{3}}"
+
+// 2. Enviar template via API
+async function enviarTemplate(destinatario, nomeCliente, numeroPedido, valor) {
+  await fetch(`https://graph.facebook.com/v21.0/${PHONE_NUMBER_ID}/messages`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${ACCESS_TOKEN}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      messaging_product: "whatsapp",
+      to: destinatario,
+      type: "template",
+      template: {
+        name: "pedido_confirmado",
+        language: {
+          code: "pt_BR"
+        },
+        components: [
+          {
+            type: "body",
+            parameters: [
+              {type: "text", text: nomeCliente},
+              {type: "text", text: numeroPedido},
+              {type: "text", text: valor}
+            ]
+          }
+        ]
+      }
+    })
+  });
+}
+
+// Template com botões
+async function enviarTemplateComBotoes(destinatario, codigo) {
+  await fetch(`https://graph.facebook.com/v21.0/${PHONE_NUMBER_ID}/messages`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${ACCESS_TOKEN}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      messaging_product: "whatsapp",
+      to: destinatario,
+      type: "template",
+      template: {
+        name: "confirmacao_com_botoes",
+        language: {code: "pt_BR"},
+        components: [
+          {
+            type: "body",
+            parameters: [{type: "text", text: codigo}]
+          },
+          {
+            type: "button",
+            sub_type: "url",
+            index: "0",
+            parameters: [{type: "text", text: codigo}]
+          }
+        ]
+      }
+    })
+  });
+}
+```
+
+**Observações:** 
+- Templates requerem aprovação (geralmente 24-48h)
+- Categorias: MARKETING, UTILITY, AUTHENTICATION
+- Necessário para mensagens proativas (fora da janela de 24h)
+- Templates de MARKETING têm limite de envio
+
+---
+
+### 30. Templates com mídia (Header)
+**Descrição:** Templates que incluem imagem, vídeo ou documento no cabeçalho.
+
+**É possível implementar via API:** Sim
+
+**Como implementar:**
+- Adicionar header do tipo IMAGE, VIDEO ou DOCUMENT ao template
+- Enviar media_id ou URL ao usar o template
+
+**Exemplo prático:**
+```javascript
+// Template com imagem dinâmica no header
+async function enviarTemplateComImagem(destinatario, urlImagem, nomeProduto) {
+  await fetch(`https://graph.facebook.com/v21.0/${PHONE_NUMBER_ID}/messages`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${ACCESS_TOKEN}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      messaging_product: "whatsapp",
+      to: destinatario,
+      type: "template",
+      template: {
+        name: "promocao_produto",
+        language: {code: "pt_BR"},
+        components: [
+          {
+            type: "header",
+            parameters: [
+              {
+                type: "image",
+                image: {link: urlImagem}
+              }
+            ]
+          },
+          {
+            type: "body",
+            parameters: [
+              {type: "text", text: nomeProduto}
+            ]
+          }
+        ]
+      }
+    })
+  });
+}
+```
+
+**Observações:** Headers de mídia devem ser configurados no template. Mídia pode ser estática (fixa no template) ou dinâmica (passada como parâmetro).
+
+---
+
+### 31. Botões de Call-to-Action (CTA) em templates
+**Descrição:** Botões em templates que abrem URL, fazem ligação telefônica ou copiam código.
+
+**É possível implementar via API:** Sim
+
+**Como implementar:**
+- Tipos: URL, PHONE_NUMBER, COPY_CODE
+- Configurados no template, podem ter parâmetros dinâmicos
+
+**Exemplo prático:**
+```javascript
+// Template com botão de URL dinâmica
+// Template: "Seu pedido está pronto! Número: {{1}}"
+// Botão: "Rastrear Pedido" → https://site.com/rastreio/{{1}}
+
+async function enviarTemplateRastreio(destinatario, codigoRastreio) {
+  await fetch(`https://graph.facebook.com/v21.0/${PHONE_NUMBER_ID}/messages`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${ACCESS_TOKEN}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      messaging_product: "whatsapp",
+      to: destinatario,
+      type: "template",
+      template: {
+        name: "rastreio_pedido",
+        language: {code: "pt_BR"},
+        components: [
+          {
+            type: "body",
+            parameters: [
+              {type: "text", text: codigoRastreio}
+            ]
+          },
+          {
+            type: "button",
+            sub_type: "url",
+            index: "0", // Primeiro botão
+            parameters: [
+              {type: "text", text: codigoRastreio} // Substitui {{1}} na URL
+            ]
+          }
+        ]
+      }
+    })
+  });
+}
+
+// Template com botão de telefone
+// Botão: "Ligar para suporte" → tel:+551140041000
+// Não precisa de parâmetros, já está fixo no template
+```
+
+**Observações:** 
+- Botões URL podem ter sufixo dinâmico ({{1}})
+- Botões PHONE_NUMBER são fixos
+- COPY_CODE útil para códigos OTP/verificação
+
+---
+
+### 32. Templates de autenticação (OTP)
+**Descrição:** Templates especiais para envio de códigos de verificação (One-Time Password).
+
+**É possível implementar via API:** Sim
+
+**Como implementar:**
+- Categoria: AUTHENTICATION
+- Botão de copiar código automático
+- Expiração de tempo configurável
+- Código de segurança incluso
+
+**Exemplo prático:**
+```javascript
+async function enviarCodigoOTP(destinatario, codigoOTP) {
+  await fetch(`https://graph.facebook.com/v21.0/${PHONE_NUMBER_ID}/messages`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${ACCESS_TOKEN}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      messaging_product: "whatsapp",
+      to: destinatario,
+      type: "template",
+      template: {
+        name: "authentication_template",
+        language: {code: "pt_BR"},
+        components: [
+          {
+            type: "body",
+            parameters: [
+              {type: "text", text: codigoOTP}
+            ]
+          },
+          {
+            type: "button",
+            sub_type: "url",
+            index: "0",
+            parameters: [
+              {type: "text", text: codigoOTP}
+            ]
+          }
+        ]
+      }
+    })
+  });
+}
+```
+
+**Observações:** 
+- Templates de autenticação têm aprovação mais rápida
+- Incluem botão "Copiar código" automático
+- Taxa de entrega prioritária
+- Limite de taxa mais alto
+
+---
+
+
+CONTINUE NO BLOCO5

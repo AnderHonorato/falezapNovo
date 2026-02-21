@@ -1,0 +1,291 @@
+/* frontend/src/componentes/ConversaItem.css - ✅ CORRIGIDO */
+
+/* Conversa Item - Compacto com hover suave */
+
+.conversa-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 16px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  border-bottom: none;
+  min-height: 72px;
+  max-height: 72px;
+  position: relative;
+  overflow: visible;
+}
+
+.conversa-item::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 0;
+  background: linear-gradient(90deg, #10b981 0%, transparent 100%);
+  transition: width 0.3s ease;
+}
+
+.conversa-item:hover::before {
+  width: 4px;
+}
+
+.conversa-item:hover {
+  background: linear-gradient(90deg, #f9fafb 0%, #f3f4f6 100%);
+  transform: translateX(2px);
+}
+
+.conversa-item.selecionada {
+  background: linear-gradient(90deg, #f0fdf4 0%, #dcfce7 100%);
+  box-shadow: inset 4px 0 0 #10b981;
+}
+
+.conversa-item.tema-escuro {
+  border-bottom-color: transparent;
+}
+
+.conversa-item.tema-escuro:hover {
+  background: linear-gradient(90deg, #202c33 0%, #1a252c 100%);
+}
+
+.conversa-item.tema-escuro.selecionada {
+  background: linear-gradient(90deg, #1a3a2e 0%, #163529 100%);
+}
+
+/* AVATAR com pulse no online */
+.conversa-avatar-wrapper {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.conversa-avatar {
+  width: 49px;
+  height: 49px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: #dfe5e7;
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.conversa-item:hover .conversa-avatar {
+  transform: scale(1.05);
+}
+
+.conversa-item.tema-escuro .conversa-avatar {
+  background: #6b7c85;
+}
+
+.avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.avatar-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+}
+
+.conversa-item.tema-escuro .avatar-placeholder {
+  color: #ffffff;
+}
+
+.avatar-status-online {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 10px;
+  height: 10px;
+  background: #25d366;
+  border: 2px solid #ffffff;
+  border-radius: 50%;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(37, 211, 102, 0.7); }
+  50% { box-shadow: 0 0 0 4px rgba(37, 211, 102, 0); }
+}
+
+.conversa-item.tema-escuro .avatar-status-online {
+  border-color: #111b21;
+}
+
+/* CONTENT */
+.conversa-content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.conversa-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 2px;
+}
+
+.conversa-nome-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  flex: 1;
+}
+
+.conversa-nome {
+  font-size: 16px;
+  font-weight: 500;
+  color: #111b21;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 21px;
+}
+
+.conversa-item.tema-escuro .conversa-nome {
+  color: #e9edef;
+}
+
+.conversa-pin-icon {
+  color: #8696a0;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+}
+
+.conversa-item:hover .conversa-pin-icon {
+  color: #f59e0b;
+  transform: rotate(12deg);
+}
+
+.conversa-meta {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.conversa-horario {
+  font-size: 12px;
+  font-weight: 400;
+  color: #667781;
+  white-space: nowrap;
+  line-height: 16px;
+}
+
+.conversa-item.tema-escuro .conversa-horario {
+  color: #8696a0;
+}
+
+.conversa-dropdown-icon {
+  color: #8696a0;
+  opacity: 0;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  transform: rotate(0deg);
+}
+
+.conversa-item:hover .conversa-dropdown-icon {
+  opacity: 1;
+  transform: rotate(180deg);
+}
+
+/* PREVIEW */
+.conversa-preview {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.conversa-ultima-mensagem {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+}
+
+/* ================== ✅ CORREÇÃO APLICADA ================== */
+.preview-texto {  /* ✅ Nome correto */
+  font-size: 14px;
+  font-weight: 400;
+  color: #8696a0;
+  line-height: 20px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: block;
+}
+
+.preview-texto.nao-lida {  /* ✅ Nome correto */
+  color: #111b21;
+  font-weight: 600;
+}
+
+.conversa-item.tema-escuro .preview-texto {  /* ✅ Nome correto */
+  color: #6b7c85;
+}
+
+.conversa-item.tema-escuro .preview-texto.nao-lida {  /* ✅ Nome correto */
+  color: #d1d7db;
+  font-weight: 600;
+}
+/* ================== FIM DA CORREÇÃO ================== */
+
+/* STATUS com animação */
+.status-icon {
+  flex-shrink: 0;
+  color: #8696a0;
+  transition: all 0.2s ease;
+}
+
+.status-icon.read {
+  color: #53bdeb;
+  animation: checkBounce 0.4s ease;
+}
+
+@keyframes checkBounce {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.2); }
+}
+
+.conversa-mute-icon {
+  color: #8696a0;
+  flex-shrink: 0;
+}
+
+/* BADGE com pulse */
+.conversa-badge {
+  min-width: 20px;
+  height: 20px;
+  background: linear-gradient(135deg, #25d366 0%, #20ba5a 100%);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 6px;
+  flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(37, 211, 102, 0.3);
+  animation: badgePulse 2s ease-in-out infinite;
+}
+
+@keyframes badgePulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+
+.conversa-badge span {
+  font-size: 12px;
+  font-weight: 700;
+  color: #111b21;
+  line-height: 16px;
+}

@@ -1,0 +1,612 @@
+## BLOCO 9: ENGAJAMENTO E MÉTRICAS
+
+### 51. Status de entrega de mensagens (enviada, entregue, lida)
+**Descrição:** Indicadores visuais mostrando status da mensagem (✓ enviada, ✓✓ entregue, ✓✓ azul lida).
+
+**É possível implementar via API:** Sim
+
+**Como implementar:**
+- Webhook recebe status updates via campo `statuses`
+- Status possíveis: `sent`, `delivered`, `read`, `failed`
+- Atualizar interface em tempo real
+
+**Exemplo prático:**
+```javascript
+// Webhook recebendo status updates
+app.post('/webhook', async (req, res) => {
+  const entry = req.body.entry?.[0];
+  const changes = entry?.changes?.[0];
+  const value = changes?.value;
+  
+  // Verificar se é status update
+  if (value?.statuses) {
+    const status = value.statuses[0];
+    const messageId = status.id;
+    const statusType = status.status; // sent, delivered, read, failed
+    const timestamp = status.timestamp;
+    const recipientId = status.recipient_id;
+    
+    // Atualizar no banco de dados
+    await db.mensagens.update(
+      {messageId: messageId},
+      {
+        $set: {
+          status: statusType,
+          statusTimestamp: new Date(timestamp * 1000)
+        }
+      }
+    );
+    
+    // Se foi lida, também salvar timestamp de leitura
+    if (statusType === 'read') {
+      await db.mensagens.update(
+        {messageId: messageId},
+        {$set: {lidaEm: new Date(timestamp * 1000)}}
+      );
+    }
+    
+    // Notificar interface em tempo real (WebSocket)
+    io.emit('message-status-update', {
+      messageId: messageId,
+      status: statusType,
+      recipientId: recipientId
+    });
+  }
+  
+  res.sendStatus(200);
+});
+
+// No frontend: exibir indicadores visuais
+function renderizarStatusMensagem(mensagem) {
+  let icone = '';
+  
+  switch(mensagem.status) {
+    case 'sent':
+      icone = '✓'; // Cinza
+      break;
+    case 'delivered':
+      icone = '✓✓'; // Cinza
+      break;
+    case 'read':
+      icone = '✓✓'; // Azul
+      break;
+    case 'failed':
+      icone = '⚠️'; // Vermelho
+      break;
+  }
+  
+  return `<span class="status-${mensagem.status}">${icone}</span>`;
+}
+```
+
+**Observações:** 
+- Status `read` só vem se usuário tiver confirmação de leitura ativada
+- `failed` indica falha no envio (número inválido, bloqueado, etc)
+- Timestamps em Unix epoch (segundos)
+
+---
+
+### 52. Indicador "digitando..." (Typing indicator)
+**Descrição:** Mostrar quando o outro usuário está digitando uma mensagem.
+
+**É possível implementar via API:** Não (receber), Parcial (enviar)
+
+**Como implementar:**
+- API não recebe notificação quando usuário está digitando
+- Possível enviar indicador de "digitando" apenas como simulação visual no site
+- Não há endpoint oficial para isso
+
+**Exemplo prático:**
+```javascript
+// Não é possível receber via API quando usuário está digitando
+
+// Simulação visual no site (apenas para experiência do usuário do site)
+function simularDigitando(conversaId, duracao = 3000) {
+  const chatBox = document.getElementById(`chat-${conversaId}`);
+  const indicador = document.createElement('div');
+  indicador.className = 'typing-indicator';
+  indicador.innerHTML = '<span></span><span></span><span></span>';
+  chatBox.appendChild(indicador);
+  
+  setTimeout(() => {
+    indicador.remove();
+  }, duracao);
+}
+
+// Usar antes de enviar resposta automática
+async function responderComDelay(destinatario, mensagem) {
+  // Mostrar "digitando" no site
+  simularDigitando(destinatario, 2000);
+  
+  // Aguardar 2 segundos
+  await delay(2000);
+  
+  // Enviar mensagem
+  await enviarMensagem(destinatario, mensagem);
+}
+```
+
+**Observações:** API não suporta enviar ou receber indicador de digitação. Apenas simulação visual local no site.
+
+---
+
+### 53. Online/Offline status
+**Descrição:** Ver quando contato está online ou última vez visto.
+
+**É possível implementar via API:** Não
+
+**Como implementar:**
+- API não fornece status online/offline dos usuários
+- Não há webhook para presença
+- Impossível saber quando usuário está ativo
+
+**Exemplo prático:**
+```javascript
+// Não disponível via API
+// Privacidade: WhatsApp não expõe status de presença via API Business
+```
+
+**Observações:** Recurso de privacidade. WhatsApp não compartilha status de presença via API.
+
+---
+
+### 54. Tempo de resposta e métricas de atendimento
+**Descrição:** Calcular tempo médio de resposta, taxa de resolução, satisfação.
+
+**É possível implementar via API:** Não (diretamente), Sim (calculando localmente)
+
+**Como implementar:**
+- Calcular métricas baseadas nos dados armazenados localmente
+- Rastrear timestamps de mensagens recebidas e enviadas
+- Criar dashboard de analytics
+
+**Exemplo prático:**
+```javascript
+// Calcular tempo médio de resposta
+async function calcularTempoMedioResposta(periodo) {
+  const conversas = await db.mensagens.find({
+    timestamp: {$gte: periodo.inicio, $lte: periodo.fim}
+  }).sort({timestamp: 1});
+  
+  const temposResposta = [];
+  
+  for (const conversa of agruparPorConversa(conversas)) {
+    let ultimaMensagemUsuario = null;
+    
+    for (const msg of conversa.mensagens) {
+      if (msg.direcao === 'recebida') {
+        ultimaMensagemUsuario = msg;
+      } else if (msg.direcao === 'enviada' && ultimaMensagemUsuario) {
+        const tempoResposta = msg.timestamp - ultimaMensagemUsuario.timestamp;
+        temposResposta.push(tempoResposta);
+        ultimaMensagemUsuario = null;
+      }
+    }
+  }
+  
+  const media = temposResposta.reduce((a, b) => a + b, 0) / temposResposta.length;
+  return media / 1000 / 60; // Converter para minutos
+}
+
+// Dashboard de métricas
+async function gerarDashboardMetricas(periodo) {
+  const metricas = {
+    totalConversas: await db.conversas.count({
+      ultimaInteracao: {$gte: periodo.inicio}
+    }),
+    
+    mensagensRecebidas: await db.mensagens.count({
+      direcao: 'recebida',
+      timestamp: {$gte: periodo.inicio}
+    }),
+    
+    mensagensEnviadas: await db.mensagens.count({
+      direcao: 'enviada',
+      timestamp: {$gte: periodo.inicio}
+    }),
+    
+    tempoMedioResposta: await calcularTempoMedioResposta(periodo),
+    
+    taxaResposta: await calcularTaxaResposta(periodo),
+    
+    conversasResolvidas: await db.conversas.count({
+      status: 'resolvida',
+      resolvidaEm: {$gte: periodo.inicio}
+    }),
+    
+    horariosComMaisVolume: await analisarHorariosPico(periodo),
+    
+    topAssuntos: await analisarTopAssuntos(periodo)
+  };
+  
+  return metricas;
+}
+
+// Taxa de resposta (% de conversas respondidas)
+async function calcularTaxaResposta(periodo) {
+  const totalRecebidas = await db.conversas.count({
+    ultimaMensagemRecebida: {$gte: periodo.inicio}
+  });
+  
+  const respondidas = await db.conversas.count({
+    ultimaMensagemRecebida: {$gte: periodo.inicio},
+    ultimaMensagemEnviada: {$gte: periodo.inicio}
+  });
+  
+  return (respondidas / totalRecebidas) * 100;
+}
+
+// Horários de pico
+async function analisarHorariosPico(periodo) {
+  const mensagens = await db.mensagens.find({
+    direcao: 'recebida',
+    timestamp: {$gte: periodo.inicio}
+  });
+  
+  const porHora = {};
+  
+  mensagens.forEach(msg => {
+    const hora = new Date(msg.timestamp).getHours();
+    porHora[hora] = (porHora[hora] || 0) + 1;
+  });
+  
+  return Object.entries(porHora)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5);
+}
+```
+
+**Observações:** 
+- Métricas calculadas a partir de dados locais
+- Criar visualizações (gráficos) no dashboard
+- Útil para otimizar atendimento
+
+---
+
+### 55. Relatórios e exportação de conversas
+**Descrição:** Exportar histórico de conversas, relatórios de atendimento, análises.
+
+**É possível implementar via API:** Não (diretamente), Sim (exportando dados locais)
+
+**Como implementar:**
+- Exportar dados do banco de dados local
+- Gerar relatórios em PDF, Excel, CSV
+- Criar filtros por período, atendente, tag, status
+
+**Exemplo prático:**
+```javascript
+// Exportar conversas para CSV
+const createCsvWriter = require('csv-writer').createObjectCsvWriter;
+
+async function exportarConversasCSV(periodo, filtros = {}) {
+  const conversas = await db.mensagens.find({
+    timestamp: {$gte: periodo.inicio, $lte: periodo.fim},
+    ...filtros
+  }).sort({timestamp: 1});
+  
+  const csvWriter = createCsvWriter({
+    path: `relatorio_${Date.now()}.csv`,
+    header: [
+      {id: 'timestamp', title: 'Data/Hora'},
+      {id: 'numero', title: 'Número'},
+      {id: 'nome', title: 'Nome'},
+      {id: 'direcao', title: 'Direção'},
+      {id: 'tipo', title: 'Tipo'},
+      {id: 'conteudo', title: 'Conteúdo'},
+      {id: 'status', title: 'Status'},
+      {id: 'atendente', title: 'Atendente'}
+    ]
+  });
+  
+  const records = conversas.map(msg => ({
+    timestamp: new Date(msg.timestamp).toLocaleString('pt-BR'),
+    numero: msg.from || msg.to,
+    nome: msg.nomeContato || 'Desconhecido',
+    direcao: msg.direcao,
+    tipo: msg.type,
+    conteudo: msg.texto || msg.caption || `[${msg.type}]`,
+    status: msg.status,
+    atendente: msg.atendenteId || 'Bot'
+  }));
+  
+  await csvWriter.writeRecords(records);
+  return `relatorio_${Date.now()}.csv`;
+}
+
+// Exportar para Excel
+const ExcelJS = require('exceljs');
+
+async function exportarConversasExcel(periodo) {
+  const workbook = new ExcelJS.Workbook();
+  const worksheet = workbook.addWorksheet('Conversas');
+  
+  worksheet.columns = [
+    {header: 'Data/Hora', key: 'timestamp', width: 20},
+    {header: 'Número', key: 'numero', width: 15},
+    {header: 'Nome', key: 'nome', width: 25},
+    {header: 'Tipo', key: 'tipo', width: 15},
+    {header: 'Mensagem', key: 'mensagem', width: 50},
+    {header: 'Status', key: 'status', width: 15}
+  ];
+  
+  const conversas = await db.mensagens.find({
+    timestamp: {$gte: periodo.inicio, $lte: periodo.fim}
+  });
+  
+  conversas.forEach(msg => {
+    worksheet.addRow({
+      timestamp: new Date(msg.timestamp).toLocaleString('pt-BR'),
+      numero: msg.from || msg.to,
+      nome: msg.nomeContato,
+      tipo: msg.type,
+      mensagem: msg.texto || `[${msg.type}]`,
+      status: msg.status
+    });
+  });
+  
+  await workbook.xlsx.writeFile(`relatorio_${Date.now()}.xlsx`);
+}
+
+// Gerar relatório PDF
+const PDFDocument = require('pdfkit');
+const fs = require('fs');
+
+async function gerarRelatorioPDF(periodo) {
+  const doc = new PDFDocument();
+  doc.pipe(fs.createWriteStream(`relatorio_${Date.now()}.pdf`));
+  
+  // Cabeçalho
+  doc.fontSize(20).text('Relatório de Atendimento WhatsApp', {align: 'center'});
+  doc.fontSize(12).text(`Período: ${periodo.inicio.toLocaleDateString()} - ${periodo.fim.toLocaleDateString()}`, {align: 'center'});
+  doc.moveDown();
+  
+  // Métricas
+  const metricas = await gerarDashboardMetricas(periodo);
+  
+  doc.fontSize(14).text('Métricas Gerais', {underline: true});
+  doc.fontSize(10);
+  doc.text(`Total de Conversas: ${metricas.totalConversas}`);
+  doc.text(`Mensagens Recebidas: ${metricas.mensagensRecebidas}`);
+  doc.text(`Mensagens Enviadas: ${metricas.mensagensEnviadas}`);
+  doc.text(`Tempo Médio de Resposta: ${metricas.tempoMedioResposta.toFixed(2)} minutos`);
+  doc.text(`Taxa de Resposta: ${metricas.taxaResposta.toFixed(2)}%`);
+  
+  doc.end();
+}
+```
+
+**Observações:** 
+- Exportações baseadas em dados locais
+- Considerar LGPD/GDPR ao exportar dados pessoais
+- Adicionar filtros e permissões de acesso
+
+---
+
+### 56. Notificações de novas mensagens
+**Descrição:** Alertas visuais/sonoros quando nova mensagem é recebida.
+
+**É possível implementar via API:** Sim (via webhook + notificações web)
+
+**Como implementar:**
+- Webhook recebe mensagens em tempo real
+- Enviar notificação para frontend via WebSocket
+- Usar Web Notifications API para notificações do navegador
+- Notificações por email/SMS para alertas externos
+
+**Exemplo prático:**
+```javascript
+// Backend: enviar notificação via WebSocket
+const io = require('socket.io')(server);
+
+app.post('/webhook', async (req, res) => {
+  const message = req.body.entry?.[0]?.changes?.[0]?.value?.messages?.[0];
+  
+  if (message) {
+    const from = message.from;
+    const texto = message.text?.body || `[${message.type}]`;
+    
+    // Emitir evento para clientes conectados via WebSocket
+    io.emit('nova-mensagem', {
+      numero: from,
+      nome: message.profile?.name || from,
+      texto: texto,
+      timestamp: new Date()
+    });
+    
+    // Enviar email para atendentes
+    await enviarEmailNotificacao({
+      destinatarios: ['atendimento@empresa.com'],
+      assunto: 'Nova mensagem WhatsApp',
+      corpo: `Mensagem de ${from}: ${texto}`
+    });
+  }
+  
+  res.sendStatus(200);
+});
+
+// Frontend: receber e exibir notificação
+const socket = io('https://seu-site.com');
+
+socket.on('nova-mensagem', (data) => {
+  // Tocar som
+  new Audio('/notification.mp3').play();
+  
+  // Mostrar notificação do navegador
+  if (Notification.permission === 'granted') {
+    new Notification('Nova mensagem WhatsApp', {
+      body: `${data.nome}: ${data.texto}`,
+      icon: '/whatsapp-icon.png',
+      tag: data.numero
+    });
+  }
+  
+  // Badge na aba do navegador
+  atualizarBadgeAba(contadorNaoLidas + 1);
+  
+  // Notificação visual na interface
+  mostrarToast(`Nova mensagem de ${data.nome}`);
+});
+
+// Solicitar permissão para notificações
+if ('Notification' in window && Notification.permission === 'default') {
+  Notification.requestPermission();
+}
+
+// Badge na aba do navegador
+function atualizarBadgeAba(contador) {
+  document.title = contador > 0 ? `(${contador}) WhatsApp Web` : 'WhatsApp Web';
+  
+  // Favicon com badge
+  const canvas = document.createElement('canvas');
+  canvas.width = 32;
+  canvas.height = 32;
+  const ctx = canvas.getContext('2d');
+  
+  // Desenhar badge
+  if (contador > 0) {
+    ctx.fillStyle = '#25D366';
+    ctx.beginPath();
+    ctx.arc(24, 8, 8, 0, 2 * Math.PI);
+    ctx.fill();
+    
+    ctx.fillStyle = 'white';
+    ctx.font = 'bold 10px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText(contador > 99 ? '99+' : contador, 24, 11);
+  }
+  
+  const link = document.querySelector("link[rel*='icon']");
+  link.href = canvas.toDataURL();
+}
+```
+
+**Observações:** 
+- WebSocket para notificações em tempo real
+- Web Notifications API requer permissão do usuário
+- Som de notificação deve ser discreto
+- Agrupar notificações para evitar spam
+
+---
+
+### 57. Transferir conversa entre atendentes
+**Descrição:** Redirecionar conversa ativa de um atendente para outro.
+
+**É possível implementar via API:** Não (diretamente), Sim (via lógica interna)
+
+**Como implementar:**
+- Gerenciar atribuição de conversas no banco de dados
+- Implementar sistema de "ownership" de conversas
+- Notificar atendentes sobre transferências
+
+**Exemplo prático:**
+```javascript
+// Estrutura de conversa com atendente atribuído
+const conversa = {
+  numero: '5511999999999',
+  atendenteAtual: 'atendente_1',
+  historicoAtendentes: [
+    {atendente: 'atendente_1', inicio: new Date(), fim: null}
+  ],
+  status: 'em_atendimento'
+};
+
+// Transferir conversa
+async function transferirConversa(numeroConversa, atendenteOrigemId, atendenteDestinoId, motivo) {
+  const conversa = await db.conversas.findOne({numero: numeroConversa});
+  
+  if (!conversa || conversa.atendenteAtual !== atendenteOrigemId) {
+    throw new Error('Conversa não encontrada ou você não é o atendente atual');
+  }
+  
+  // Finalizar atendimento atual
+  await db.conversas.update(
+    {
+      numero: numeroConversa,
+      'historicoAtendentes.fim': null
+    },
+    {
+      $set: {
+        'historicoAtendentes.$.fim': new Date()
+      }
+    }
+  );
+  
+  // Atribuir novo atendente
+  await db.conversas.update(
+    {numero: numeroConversa},
+    {
+      $set: {atendenteAtual: atendenteDestinoId},
+      $push: {
+        historicoAtendentes: {
+          atendente: atendenteDestinoId,
+          inicio: new Date(),
+          fim: null,
+          motivoTransferencia: motivo
+        }
+      }
+    }
+  );
+  
+  // Notificar atendente destino
+  io.to(atendenteDestinoId).emit('conversa-transferida', {
+    numero: numeroConversa,
+    atendenteOrigem: atendenteOrigemId,
+    motivo: motivo
+  });
+  
+  // Enviar mensagem interna ao cliente (opcional)
+  await enviarMensagem(
+    numeroConversa,
+    '🔄 Você foi transferido para outro atendente. Em breve daremos continuidade.'
+  );
+  
+  // Registrar log
+  await db.logs.insert({
+    tipo: 'transferencia',
+    de: atendenteOrigemId,
+    para: atendenteDestinoId,
+    conversa: numeroConversa,
+    motivo: motivo,
+    timestamp: new Date()
+  });
+}
+
+// Interface para transferir
+function renderizarBotaoTransferir(numeroConversa) {
+  return `
+    <button onclick="abrirModalTransferencia('${numeroConversa}')">
+      🔄 Transferir Conversa
+    </button>
+  `;
+}
+
+async function abrirModalTransferencia(numeroConversa) {
+  // Buscar atendentes disponíveis
+  const atendentes = await fetch('/api/atendentes/disponiveis').then(r => r.json());
+  
+  // Mostrar modal com lista de atendentes
+  const modal = document.getElementById('modal-transferencia');
+  const listaAtendentes = document.getElementById('lista-atendentes');
+  
+  listaAtendentes.innerHTML = atendentes.map(a => `
+    <div class="atendente-item" onclick="confirmarTransferencia('${numeroConversa}', '${a.id}')">
+      <img src="${a.foto}" alt="${a.nome}">
+      <div>
+        <strong>${a.nome}</strong>
+        <span>${a.status} - ${a.conversasAtivas} conversas ativas</span>
+      </div>
+    </div>
+  `).join('');
+  
+  modal.style.display = 'block';
+}
+```
+
+**Observações:** 
+- Rastrear histórico de transferências
+- Mostrar contexto da conversa ao novo atendente
+- Implementar notificações para ambos atendentes
+
+---
+
+CONTINUE NO BLOCO10

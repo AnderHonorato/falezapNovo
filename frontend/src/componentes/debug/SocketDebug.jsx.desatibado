@@ -1,0 +1,251 @@
+// frontend/src/componentes/debug/SocketDebug.jsx
+// ✅ COMPONENTE PARA TESTAR SE O SOCKET ESTÁ FUNCIONANDO
+
+import React, { useEffect, useState } from 'react';
+import { useSocket } from '../../contextos/SocketContext';
+import { useAuth } from '../../contextos/AuthContext';
+
+export default function SocketDebug() {
+  const { socket, conectado } = useSocket();
+  const { usuario } = useAuth();
+  const [eventos, setEventos] = useState([]);
+
+  useEffect(() => {
+    if (!socket) return;
+
+    console.log('🐛 [SocketDebug] Monitorando eventos...');
+
+    // ✅ Monitora TODOS os eventos
+    const handleAnyEvent = (eventName, ...args) => {
+      const novoEvento = {
+        timestamp: new Date().toLocaleTimeString(),
+        evento: eventName,
+        dados: args
+      };
+      
+      console.log('🔔 [SocketDebug] Evento:', eventName, args);
+      
+      setEventos(prev => [novoEvento, ...prev].slice(0, 20)); // Mantém últimos 20
+    };
+
+    socket.onAny(handleAnyEvent);
+
+    return () => {
+      socket.offAny(handleAnyEvent);
+    };
+  }, [socket]);
+
+  if (!socket) {
+    return (
+      <div style={styles.container}>
+        <h3 style={styles.title}>⚠️ Socket não inicializado</h3>
+      </div>
+    );
+  }
+
+  return (
+    <div style={styles.container}>
+      <div style={styles.header}>
+        <h3 style={styles.title}>🔌 Socket Debug</h3>
+        <div style={styles.status}>
+          <span style={{
+            ...styles.badge,
+            backgroundColor: conectado ? '#10b981' : '#ef4444'
+          }}>
+            {conectado ? '✅ Conectado' : '❌ Desconectado'}
+          </span>
+        </div>
+      </div>
+
+      <div style={styles.info}>
+        <div style={styles.infoItem}>
+          <strong>Socket ID:</strong> {socket.id || 'N/A'}
+        </div>
+        <div style={styles.infoItem}>
+          <strong>Usuário:</strong> {usuario?.nome || 'N/A'}
+        </div>
+        <div style={styles.infoItem}>
+          <strong>Conta ID:</strong> {usuario?.contaId || 'N/A'}
+        </div>
+        <div style={styles.infoItem}>
+          <strong>Sala:</strong> conta:{usuario?.contaId || 'N/A'}
+        </div>
+      </div>
+
+      <div style={styles.section}>
+        <h4 style={styles.subtitle}>📨 Eventos Recebidos (últimos 20)</h4>
+        <button 
+          onClick={() => setEventos([])}
+          style={styles.clearButton}
+        >
+          🗑️ Limpar
+        </button>
+      </div>
+
+      <div style={styles.eventList}>
+        {eventos.length === 0 ? (
+          <div style={styles.empty}>Nenhum evento recebido ainda...</div>
+        ) : (
+          eventos.map((evento, index) => (
+            <div key={index} style={styles.eventItem}>
+              <div style={styles.eventHeader}>
+                <span style={styles.eventTime}>{evento.timestamp}</span>
+                <span style={styles.eventName}>{evento.evento}</span>
+              </div>
+              <pre style={styles.eventData}>
+                {JSON.stringify(evento.dados, null, 2)}
+              </pre>
+            </div>
+          ))
+        )}
+      </div>
+
+      <div style={styles.testSection}>
+        <h4 style={styles.subtitle}>🧪 Testes</h4>
+        <button 
+          onClick={() => {
+            console.log('🧪 Testando emit de evento...');
+            socket.emit('teste_conexao', { 
+              mensagem: 'Teste do frontend',
+              timestamp: new Date().toISOString()
+            });
+          }}
+          style={styles.testButton}
+        >
+          📤 Enviar Evento de Teste
+        </button>
+      </div>
+    </div>
+  );
+}
+
+const styles = {
+  container: {
+    position: 'fixed',
+    bottom: 20,
+    right: 20,
+    width: 400,
+    maxHeight: 600,
+    backgroundColor: '#1f2937',
+    color: 'white',
+    borderRadius: 12,
+    padding: 20,
+    boxShadow: '0 10px 40px rgba(0,0,0,0.3)',
+    zIndex: 9999,
+    overflow: 'auto'
+  },
+  header: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+    paddingBottom: 15,
+    borderBottom: '2px solid #374151'
+  },
+  title: {
+    margin: 0,
+    fontSize: 18,
+    fontWeight: 'bold'
+  },
+  status: {
+    display: 'flex',
+    alignItems: 'center'
+  },
+  badge: {
+    padding: '4px 12px',
+    borderRadius: 20,
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: 'white'
+  },
+  info: {
+    backgroundColor: '#374151',
+    borderRadius: 8,
+    padding: 15,
+    marginBottom: 20
+  },
+  infoItem: {
+    marginBottom: 8,
+    fontSize: 13,
+    display: 'flex',
+    gap: 8
+  },
+  section: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 15
+  },
+  subtitle: {
+    margin: 0,
+    fontSize: 14,
+    fontWeight: 'bold'
+  },
+  clearButton: {
+    backgroundColor: '#ef4444',
+    color: 'white',
+    border: 'none',
+    padding: '6px 12px',
+    borderRadius: 6,
+    cursor: 'pointer',
+    fontSize: 12,
+    fontWeight: 'bold'
+  },
+  eventList: {
+    maxHeight: 300,
+    overflowY: 'auto',
+    marginBottom: 20
+  },
+  eventItem: {
+    backgroundColor: '#374151',
+    borderRadius: 6,
+    padding: 12,
+    marginBottom: 10,
+    fontSize: 12
+  },
+  eventHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+    paddingBottom: 8,
+    borderBottom: '1px solid #4b5563'
+  },
+  eventTime: {
+    color: '#9ca3af',
+    fontSize: 11
+  },
+  eventName: {
+    color: '#60a5fa',
+    fontWeight: 'bold'
+  },
+  eventData: {
+    backgroundColor: '#1f2937',
+    padding: 8,
+    borderRadius: 4,
+    fontSize: 11,
+    overflow: 'auto',
+    margin: 0
+  },
+  empty: {
+    textAlign: 'center',
+    color: '#9ca3af',
+    padding: 20,
+    fontSize: 13
+  },
+  testSection: {
+    borderTop: '2px solid #374151',
+    paddingTop: 15
+  },
+  testButton: {
+    width: '100%',
+    backgroundColor: '#3b82f6',
+    color: 'white',
+    border: 'none',
+    padding: '10px 16px',
+    borderRadius: 8,
+    cursor: 'pointer',
+    fontSize: 14,
+    fontWeight: 'bold',
+    marginTop: 10
+  }
+};

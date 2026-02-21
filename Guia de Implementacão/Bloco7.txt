@@ -1,0 +1,363 @@
+## BLOCO 7: CATÁLOGO E PERFIL COMERCIAL
+
+### 42. Exibir catálogo de produtos
+**Descrição:** Mostrar catálogo de produtos com imagens, preços e descrições.
+
+**É possível implementar via API:** Sim
+
+**Como implementar:**
+- Criar catálogo no Meta Commerce Manager
+- Enviar mensagens de catálogo via API
+- Type: `interactive`, subtype: `product` ou `product_list`
+
+**Exemplo prático:**
+```javascript
+// 1. Enviar catálogo completo
+async function enviarCatalogo(destinatario) {
+  await fetch(`https://graph.facebook.com/v21.0/${PHONE_NUMBER_ID}/messages`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${ACCESS_TOKEN}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      messaging_product: "whatsapp",
+      to: destinatario,
+      type: "interactive",
+      interactive: {
+        type: "catalog_message",
+        body: {
+          text: "Confira nossos produtos!"
+        },
+        action: {
+          name: "catalog_message"
+        }
+      }
+    })
+  });
+}
+
+// 2. Enviar produto específico
+async function enviarProduto(destinatario, productRetailerId) {
+  await fetch(`https://graph.facebook.com/v21.0/${PHONE_NUMBER_ID}/messages`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${ACCESS_TOKEN}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      messaging_product: "whatsapp",
+      to: destinatario,
+      type: "interactive",
+      interactive: {
+        type: "product",
+        body: {
+          text: "Produto recomendado:"
+        },
+        action: {
+          catalog_id: CATALOG_ID,
+          product_retailer_id: productRetailerId
+        }
+      }
+    })
+  });
+}
+
+// 3. Enviar lista de produtos (até 30 produtos)
+async function enviarListaProdutos(destinatario, produtosIds) {
+  await fetch(`https://graph.facebook.com/v21.0/${PHONE_NUMBER_ID}/messages`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${ACCESS_TOKEN}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      messaging_product: "whatsapp",
+      to: destinatario,
+      type: "interactive",
+      interactive: {
+        type: "product_list",
+        header: {
+          type: "text",
+          text: "Produtos em Destaque"
+        },
+        body: {
+          text: "Veja nossa seleção especial"
+        },
+        action: {
+          catalog_id: CATALOG_ID,
+          sections: [
+            {
+              title: "Eletrônicos",
+              product_items: produtosIds.slice(0, 10).map(id => ({
+                product_retailer_id: id
+              }))
+            }
+          ]
+        }
+      }
+    })
+  });
+}
+```
+
+**Observações:** 
+- Catálogo deve ser criado no Commerce Manager primeiro
+- Até 30 produtos por mensagem de lista
+- Produto único (single product) para destaque
+
+---
+
+### 43. Receber pedidos do catálogo
+**Descrição:** Receber quando usuário seleciona produtos e faz pedido pelo catálogo.
+
+**É possível implementar via API:** Sim
+
+**Como implementar:**
+- Webhook recebe type: `order`
+- Payload contém produtos selecionados, quantidades e total
+
+**Exemplo prático:**
+```javascript
+if (message?.type === 'order') {
+  const order = message.order;
+  const catalogId = order.catalog_id;
+  const products = order.product_items;
+  
+  const pedido = {
+    clienteNumero: message.from,
+    catalogId: catalogId,
+    produtos: products.map(p => ({
+      productRetailerId: p.product_retailer_id,
+      quantidade: p.quantity,
+      preco: p.item_price,
+      moeda: p.currency
+    })),
+    total: products.reduce((sum, p) => sum + (p.item_price * p.quantity), 0),
+    timestamp: new Date()
+  };
+  
+  salvarPedidoNoBanco(pedido);
+  
+  // Confirmar recebimento do pedido
+  await enviarMensagem(
+    message.from,
+    `✅ Pedido recebido!\n\nTotal: R$ ${pedido.total.toFixed(2)}\n\nProcessaremos em breve.`
+  );
+  
+  // Processar pagamento, envio, etc
+}
+```
+
+**Observações:** 
+- Pedidos via catálogo não processam pagamento automaticamente
+- Você deve implementar confirmação e pagamento
+- Webhook recebe pedido completo estruturado
+
+---
+
+### 44. Gerenciar catálogo de produtos
+**Descrição:** Adicionar, editar, remover produtos do catálogo.
+
+**É possível implementar via API:** Sim
+
+**Como implementar:**
+- Usar Commerce API (Graph API) para gerenciar produtos
+- Endpoints para CRUD de produtos
+- Catálogo vinculado ao WhatsApp Business Account
+
+**Exemplo prático:**
+```javascript
+// 1. Adicionar produto ao catálogo
+async function adicionarProduto(catalogId, dadosProduto) {
+  const response = await fetch(
+    `https://graph.facebook.com/v21.0/${catalogId}/products`,
+    {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${ACCESS_TOKEN}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        retailer_id: dadosProduto.sku, // ID único
+        name: dadosProduto.nome,
+        description: dadosProduto.descricao,
+        price: dadosProduto.preco * 100, // Em centavos
+        currency: "BRL",
+        availability: "in stock",
+        url: dadosProduto.linkProduto,
+        image_url: dadosProduto.urlImagem,
+        brand: dadosProduto.marca,
+        category: dadosProduto.categoria
+      })
+    }
+  );
+  
+  return response.json();
+}
+
+// 2. Atualizar produto
+async function atualizarProduto(productId, dadosAtualizados) {
+  await fetch(
+    `https://graph.facebook.com/v21.0/${productId}`,
+    {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${ACCESS_TOKEN}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(dadosAtualizados)
+    }
+  );
+}
+
+// 3. Remover produto
+async function removerProduto(productId) {
+  await fetch(
+    `https://graph.facebook.com/v21.0/${productId}`,
+    {
+      method: 'DELETE',
+      headers: {'Authorization': `Bearer ${ACCESS_TOKEN}`}
+    }
+  );
+}
+
+// 4. Listar produtos do catálogo
+async function listarProdutos(catalogId) {
+  const response = await fetch(
+    `https://graph.facebook.com/v21.0/${catalogId}/products?fields=id,name,price,image_url`,
+    {headers: {'Authorization': `Bearer ${ACCESS_TOKEN}`}}
+  );
+  
+  return response.json();
+}
+```
+
+**Observações:** 
+- Produtos devem ter retailer_id único (SKU)
+- Preços em centavos (R$ 10,00 = 1000)
+- Imagens devem ser URLs públicas HTTPS
+
+---
+
+### 45. Configurar perfil comercial (Business Profile)
+**Descrição:** Definir informações da empresa: nome, descrição, endereço, horário, website, categoria.
+
+**É possível implementar via API:** Sim
+
+**Como implementar:**
+- Endpoint: `POST https://graph.facebook.com/v21.0/{phone_number_id}/whatsapp_business_profile`
+- Campos: about, address, description, email, profile_picture_url, websites, vertical
+
+**Exemplo prático:**
+```javascript
+async function configurarPerfilComercial() {
+  await fetch(
+    `https://graph.facebook.com/v21.0/${PHONE_NUMBER_ID}/whatsapp_business_profile`,
+    {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${ACCESS_TOKEN}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        messaging_product: "whatsapp",
+        about: "Loja de eletrônicos - Entrega rápida em todo Brasil",
+        address: "Av. Paulista, 1000 - São Paulo, SP",
+        description: "Mais de 10 anos no mercado, oferecendo os melhores produtos com garantia e suporte.",
+        email: "contato@minhaloja.com.br",
+        profile_picture_handle: "HANDLE_DA_IMAGEM", // Upload via Media API primeiro
+        vertical: "RETAIL", // Ou: PROF_SERVICES, HEALTH, etc
+        websites: [
+          "https://www.minhaloja.com.br",
+          "https://blog.minhaloja.com.br"
+        ]
+      })
+    }
+  );
+}
+
+// Obter perfil atual
+async function obterPerfilComercial() {
+  const response = await fetch(
+    `https://graph.facebook.com/v21.0/${PHONE_NUMBER_ID}/whatsapp_business_profile?fields=about,address,description,email,profile_picture_url,websites,vertical`,
+    {headers: {'Authorization': `Bearer ${ACCESS_TOKEN}`}}
+  );
+  
+  return response.json();
+}
+
+// Atualizar foto de perfil
+async function atualizarFotoPerfil(arquivoImagem) {
+  // 1. Upload da imagem
+  const formData = new FormData();
+  formData.append('file', arquivoImagem);
+  formData.append('messaging_product', 'whatsapp');
+  
+  const uploadResponse = await fetch(
+    `https://graph.facebook.com/v21.0/${APP_ID}/uploads`,
+    {
+      method: 'POST',
+      headers: {'Authorization': `Bearer ${ACCESS_TOKEN}`},
+      body: formData
+    }
+  );
+  const {h: handle} = await uploadResponse.json();
+  
+  // 2. Atualizar perfil com handle da imagem
+  await fetch(
+    `https://graph.facebook.com/v21.0/${PHONE_NUMBER_ID}/whatsapp_business_profile`,
+    {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${ACCESS_TOKEN}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        messaging_product: "whatsapp",
+        profile_picture_handle: handle
+      })
+    }
+  );
+}
+```
+
+**Observações:** 
+- About: máximo 139 caracteres
+- Description: máximo 512 caracteres
+- Vertical (categoria): AUTO, BEAUTY, EDUCATION, ENTERTAINMENT, FINANCE, GROCERY, HEALTH, HOTEL, NONPROFIT, PROF_SERVICES, RETAIL, TRAVEL, RESTAURANT, OTHER
+
+---
+
+### 46. Exibir informações do perfil comercial para usuários
+**Descrição:** Usuário visualiza informações da empresa ao acessar perfil no WhatsApp.
+
+**É possível implementar via API:** Sim (configuração)
+
+**Como implementar:**
+- Informações configuradas via API são exibidas automaticamente no app
+- Usuários veem ao tocar no nome da empresa na conversa
+- Exibir também no site como "cartão de visita"
+
+**Exemplo prático:**
+```javascript
+// No site: buscar e exibir perfil comercial
+async function exibirPerfilNoSite() {
+  const perfil = await obterPerfilComercial();
+  
+  // Renderizar no HTML
+  document.getElementById('perfil-empresa').innerHTML = `
+    <img src="${perfil.data[0].profile_picture_url}" alt="Logo">
+    <h2>${perfil.data[0].about}</h2>
+    <p>${perfil.data[0].description}</p>
+    <p>📍 ${perfil.data[0].address}</p>
+    <p>📧 ${perfil.data[0].email}</p>
+    <p>🌐 ${perfil.data[0].websites.join(', ')}</p>
+  `;
+}
+```
+
+**Observações:** Perfil configurado via API é sincronizado automaticamente com aplicativo WhatsApp Business.
+
+---
+CONTINUE NO BLOCO8

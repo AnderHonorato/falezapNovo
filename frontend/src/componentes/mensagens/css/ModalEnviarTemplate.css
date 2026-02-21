@@ -1,0 +1,712 @@
+/* ========================================
+   MODAL ENVIAR TEMPLATE - ESTILO COMPLETO
+   ======================================== */
+
+/* Overlay do Modal */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.75);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  padding: 20px;
+  animation: fadeIn 0.2s ease-out;
+}
+
+.modal-overlay.light-theme {
+  background-color: rgba(0, 0, 0, 0.5);
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Container Principal */
+.modal-template-container {
+  background: #1e1e1e;
+  border-radius: 16px;
+  width: 100%;
+  max-width: 1200px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  animation: slideUp 0.3s ease-out;
+}
+
+.light-theme .modal-template-container {
+  background: #ffffff;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* ========================================
+   HEADER DO MODAL
+   ======================================== */
+
+.modal-template-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 24px 28px;
+  border-bottom: 1px solid #2a2a2a;
+}
+
+.light-theme .modal-template-header {
+  border-bottom: 1px solid #e5e5e5;
+}
+
+.modal-template-header-content {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.modal-template-icon-wrapper {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #25d366 0%, #128c7e 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+}
+
+.modal-template-title {
+  font-size: 20px;
+  font-weight: 600;
+  color: #ffffff;
+  margin: 0;
+}
+
+.light-theme .modal-template-title {
+  color: #1a1a1a;
+}
+
+.modal-template-subtitle {
+  font-size: 14px;
+  color: #999999;
+  margin: 4px 0 0 0;
+}
+
+.light-theme .modal-template-subtitle {
+  color: #666666;
+}
+
+.modal-template-close-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background: transparent;
+  border: none;
+  color: #999999;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.modal-template-close-btn:hover {
+  background: #2a2a2a;
+  color: #ffffff;
+}
+
+.light-theme .modal-template-close-btn:hover {
+  background: #f0f0f0;
+  color: #1a1a1a;
+}
+
+.modal-template-close-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background: transparent;
+  border: 1px solid #2a2a2a;
+  color: #999999;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.light-theme .btn-icon {
+  border: 1px solid #e5e5e5;
+}
+
+.btn-icon:hover:not(:disabled) {
+  background: #2a2a2a;
+  color: #25d366;
+  border-color: #25d366;
+}
+
+.light-theme .btn-icon:hover:not(:disabled) {
+  background: #f0f0f0;
+  border-color: #25d366;
+}
+
+.btn-icon:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ========================================
+   BODY DO MODAL
+   ======================================== */
+
+.modal-template-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px 28px;
+}
+
+/* Loading State */
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  gap: 16px;
+  color: #999999;
+}
+
+.loading-container p {
+  font-size: 14px;
+  margin: 0;
+}
+
+/* Empty State */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  gap: 16px;
+  text-align: center;
+  color: #999999;
+}
+
+.empty-state h3 {
+  font-size: 18px;
+  font-weight: 600;
+  color: #ffffff;
+  margin: 0;
+}
+
+.light-theme .empty-state h3 {
+  color: #1a1a1a;
+}
+
+.empty-state p {
+  font-size: 14px;
+  color: #999999;
+  margin: 0;
+  max-width: 400px;
+}
+
+/* ========================================
+   LISTA DE TEMPLATES (STEP 1)
+   ======================================== */
+
+.templates-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 16px;
+}
+
+.template-card {
+  background: #252525;
+  border: 2px solid #2a2a2a;
+  border-radius: 12px;
+  padding: 20px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.light-theme .template-card {
+  background: #fafafa;
+  border: 2px solid #e5e5e5;
+}
+
+.template-card:hover {
+  border-color: #25d366;
+  background: #2a2a2a;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(37, 211, 102, 0.1);
+}
+
+.light-theme .template-card:hover {
+  background: #f5f5f5;
+  box-shadow: 0 8px 20px rgba(37, 211, 102, 0.15);
+}
+
+.template-card.selected {
+  border-color: #25d366;
+  background: #1a3a2a;
+  box-shadow: 0 0 0 3px rgba(37, 211, 102, 0.2);
+}
+
+.light-theme .template-card.selected {
+  background: #e8f5e9;
+  box-shadow: 0 0 0 3px rgba(37, 211, 102, 0.2);
+}
+
+.template-card-header {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.template-card-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  background: #2a2a2a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #25d366;
+  flex-shrink: 0;
+}
+
+.light-theme .template-card-icon {
+  background: #f0f0f0;
+}
+
+.template-card.selected .template-card-icon {
+  background: #25d366;
+  color: white;
+}
+
+.template-card-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.template-card-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #ffffff;
+  margin: 0 0 8px 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.light-theme .template-card-title {
+  color: #1a1a1a;
+}
+
+.template-card-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.badge-marketing {
+  background: rgba(139, 92, 246, 0.15);
+  color: #a78bfa;
+}
+
+.badge-utility {
+  background: rgba(59, 130, 246, 0.15);
+  color: #60a5fa;
+}
+
+.badge-authentication {
+  background: rgba(251, 146, 60, 0.15);
+  color: #fb923c;
+}
+
+.badge-approved {
+  background: rgba(34, 197, 94, 0.15);
+  color: #4ade80;
+}
+
+.badge-language {
+  background: rgba(148, 163, 184, 0.15);
+  color: #94a3b8;
+}
+
+.template-card-components {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.component-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: #2a2a2a;
+  border-radius: 6px;
+  font-size: 12px;
+  color: #999999;
+}
+
+.light-theme .component-tag {
+  background: #f0f0f0;
+  color: #666666;
+}
+
+.template-card.selected .component-tag {
+  background: rgba(37, 211, 102, 0.1);
+  color: #25d366;
+}
+
+/* ========================================
+   STEP 2: FORMULÁRIO E PREVIEW
+   ======================================== */
+
+.template-form-container {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.template-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+
+.template-form-section,
+.template-preview-section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.section-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #ffffff;
+  margin: 0;
+}
+
+.light-theme .section-title {
+  color: #1a1a1a;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.form-label {
+  font-size: 14px;
+  font-weight: 500;
+  color: #cccccc;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.light-theme .form-label {
+  color: #666666;
+}
+
+.required {
+  color: #ef4444;
+  font-weight: 600;
+}
+
+.form-input {
+  width: 100%;
+  padding: 12px 16px;
+  background: #2a2a2a;
+  border: 2px solid #3a3a3a;
+  border-radius: 8px;
+  color: #ffffff;
+  font-size: 14px;
+  transition: all 0.2s;
+}
+
+.light-theme .form-input {
+  background: #f5f5f5;
+  border: 2px solid #e5e5e5;
+  color: #1a1a1a;
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: #25d366;
+  background: #252525;
+}
+
+.light-theme .form-input:focus {
+  background: #ffffff;
+}
+
+.form-input.error {
+  border-color: #ef4444;
+}
+
+.error-message {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #ef4444;
+}
+
+.preview-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.btn-icon-small {
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  background: transparent;
+  border: 1px solid #2a2a2a;
+  color: #999999;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.light-theme .btn-icon-small {
+  border: 1px solid #e5e5e5;
+}
+
+.btn-icon-small:hover {
+  background: #2a2a2a;
+  color: #25d366;
+}
+
+.light-theme .btn-icon-small:hover {
+  background: #f0f0f0;
+}
+
+.preview-content {
+  background: #0a0a0a;
+  border-radius: 12px;
+  padding: 20px;
+  min-height: 300px;
+}
+
+.light-theme .preview-content {
+  background: #e5e5e5;
+}
+
+.preview-phone {
+  max-width: 100%;
+  background: #1e1e1e;
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.light-theme .preview-phone {
+  background: #ffffff;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.preview-message {
+  background: #00574d;
+  color: #ffffff;
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+.preview-message p {
+  margin: 0 0 8px 0;
+}
+
+.preview-message p:last-child {
+  margin: 0;
+}
+
+/* ========================================
+   FOOTER DO MODAL
+   ======================================== */
+
+.modal-template-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 20px 28px;
+  border-top: 1px solid #2a2a2a;
+}
+
+.light-theme .modal-template-footer {
+  border-top: 1px solid #e5e5e5;
+}
+
+/* ========================================
+   BOTÕES
+   ======================================== */
+
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 24px;
+  background: linear-gradient(135deg, #25d366 0%, #128c7e 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-primary:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(37, 211, 102, 0.3);
+}
+
+.btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 24px;
+  background: transparent;
+  color: #999999;
+  border: 1px solid #2a2a2a;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.light-theme .btn-secondary {
+  border: 1px solid #e5e5e5;
+  color: #666666;
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background: #2a2a2a;
+  color: #ffffff;
+}
+
+.light-theme .btn-secondary:hover:not(:disabled) {
+  background: #f0f0f0;
+  color: #1a1a1a;
+}
+
+.btn-secondary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ========================================
+   RESPONSIVIDADE
+   ======================================== */
+
+@media (max-width: 768px) {
+  .modal-template-container {
+    max-width: 100%;
+    max-height: 100vh;
+    border-radius: 0;
+  }
+
+  .templates-list {
+    grid-template-columns: 1fr;
+  }
+
+  .modal-template-header {
+    padding: 20px;
+  }
+
+  .modal-template-body {
+    padding: 20px;
+  }
+}
+
+@media (max-width: 480px) {
+  .modal-template-header-content {
+    gap: 12px;
+  }
+
+  .modal-template-icon-wrapper {
+    width: 40px;
+    height: 40px;
+  }
+
+  .modal-template-title {
+    font-size: 18px;
+  }
+
+  .modal-template-subtitle {
+    font-size: 12px;
+  }
+
+  .template-card {
+    padding: 16px;
+  }
+}

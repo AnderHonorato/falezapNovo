@@ -1,0 +1,260 @@
+/* frontend/src/styles/tema.css - VERSÃO DEFINITIVA (SÓ CLARO) */
+
+/* ========================================
+   RESET E BASE
+   ======================================== */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  height: 100%;
+  overflow: hidden;
+}
+
+body {
+  margin: 0;
+  height: 100%;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow: hidden;
+}
+
+#root {
+  height: 100%;
+  overflow: hidden;
+}
+
+/* ========================================
+   TEMA CLARO (REGRAS PRINCIPAIS)
+   ======================================== */
+body,
+html,
+body[data-tema="claro"],
+html[data-tema="claro"] {
+  background-color: #f0f2f5 !important;
+  color: #ffffff !important;
+}
+
+body #root,
+body[data-tema="claro"] #root {
+  background-color: #f0f2f5 !important;
+}
+
+/* ❌ REGRAS DE TEMA ESCURO REMOVIDAS */
+/* body[data-tema="escuro"], html[data-tema="escuro"] {...} */
+
+/* ========================================
+   TRANSIÇÕES SUAVES
+   ======================================== */
+body, html, #root {
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.theme-transition {
+  transition: background-color 0.3s ease, 
+              color 0.3s ease, 
+              border-color 0.3s ease,
+              fill 0.3s ease,
+              stroke 0.3s ease !important;
+}
+
+/* ========================================
+   SCROLLBAR PERSONALIZADA
+   ======================================== */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+/* Scrollbar - Tema Claro (Padrão) */
+::-webkit-scrollbar-track,
+body[data-tema="claro"] ::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb,
+body[data-tema="claro"] ::-webkit-scrollbar-thumb {
+  background: #b3b3b3;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover,
+body[data-tema="claro"] ::-webkit-scrollbar-thumb:hover {
+  background: #8a8a8a;
+}
+
+/* ❌ REGRAS DE SCROLLBAR ESCURO REMOVIDAS */
+
+/* Firefox */
+* {
+  scrollbar-width: thin;
+}
+
+* {
+  scrollbar-color: #b3b3b3 transparent;
+}
+
+/* ========================================
+   INPUTS E FORMULÁRIOS
+   ======================================== */
+input, textarea, select {
+  transition: background-color 0.3s ease, 
+              border-color 0.3s ease,
+              color 0.3s ease;
+}
+
+input:focus, textarea:focus, select:focus {
+  outline: none;
+}
+
+/* Placeholder - Tema Claro (Padrão) */
+input::placeholder,
+textarea::placeholder,
+body[data-tema="claro"] input::placeholder,
+body[data-tema="claro"] textarea::placeholder {
+  color: #8696a0;
+  opacity: 1;
+}
+
+/* ❌ REGRAS DE PLACEHOLDER ESCURO REMOVIDAS */
+
+/* ========================================
+   SELEÇÃO DE TEXTO
+   ======================================== */
+::selection,
+body[data-tema="claro"] ::selection {
+  background-color: rgba(37, 211, 102, 0.3);
+  color: #000000;
+}
+
+/* ❌ REGRAS DE SELEÇÃO ESCURO REMOVIDAS */
+
+/* ========================================
+   SOMBRAS
+   ======================================== */
+.shadow-sm,
+body[data-tema="claro"] .shadow-sm {
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+}
+
+.shadow,
+body[data-tema="claro"] .shadow {
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
+}
+
+.shadow-md,
+body[data-tema="claro"] .shadow-md {
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+}
+
+.shadow-lg,
+body[data-tema="claro"] .shadow-lg {
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+}
+
+/* ❌ REGRAS DE SOMBRA ESCURO REMOVIDAS */
+
+/* ========================================
+   LINKS
+   ======================================== */
+a {
+  color: inherit;
+  text-decoration: none;
+  transition: color 0.3s ease;
+}
+
+a:hover,
+body[data-tema="claro"] a:hover {
+  color: #25d366;
+}
+
+/* ❌ REGRAS DE LINK ESCURO REMOVIDAS */
+
+/* ========================================
+   ACESSIBILIDADE
+   ======================================== */
+*:focus-visible {
+  outline: 2px solid;
+  outline-offset: 2px;
+}
+
+*:focus-visible,
+body[data-tema="claro"] *:focus-visible {
+  outline-color: #25d366;
+}
+
+/* ❌ REGRAS DE ACESSIBILIDADE ESCURO REMOVIDAS */
+
+/* ========================================
+   UTILITÁRIOS (classes Tailwind-like)
+   ======================================== */
+.text-primary,
+.text-primary {
+  color: #000000 !important;
+}
+
+.text-secondary,
+.text-secondary {
+  color: #54656f !important;
+}
+
+.bg-primary,
+.bg-primary {
+  background-color: #ffffff !important;
+}
+
+.bg-secondary,
+.bg-secondary {
+  background-color: #f0f2f5 !important;
+}
+
+.border-primary,
+.border-primary {
+  border-color: #e9edef !important;
+}
+
+/* ❌ REGRAS DE UTILITÁRIOS ESCURO REMOVIDAS */
+
+/* ========================================
+   MEDIA QUERIES
+   ======================================== */
+@media (max-width: 768px) {
+  ::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+}
+
+/* ========================================
+   PREVENÇÃO DE FLASH
+   ======================================== */
+html {
+  background-color: #f0f2f5;
+}
+
+/* ❌ REGRAS DE FLASH ESCURO REMOVIDAS */
+
+/* Loading inicial */
+#root:empty::before {
+  content: '';
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  width: 48px;
+  height: 48px;
+  margin: -24px 0 0 -24px;
+  border: 4px solid;
+  border-color: #25d366 transparent #25d366 transparent;
+  border-radius: 50%;
+  animation: spin 1.2s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}

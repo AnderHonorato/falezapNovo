@@ -1,0 +1,295 @@
+/* frontend/src/componentes/mensagens/css/BolhaMensagem.css */
+
+/* Container da mensagem */
+.mensagem-wrapper {
+  position: relative;
+  margin-bottom: 4px;
+  transition: background-color 0.15s ease;
+}
+
+.mensagem-wrapper:hover {
+  background-color: rgba(148, 163, 184, 0.03);
+}
+
+.light-theme .mensagem-wrapper:hover {
+  background-color: rgba(0, 0, 0, 0.02);
+}
+
+/* Balão da mensagem - SEM animação de hover */
+.balao-mensagem {
+  position: relative;
+  max-width: 70%;
+  padding: 6px 10px 8px;
+  border-radius: 8px;
+  word-wrap: break-word;
+  box-shadow: 0 1px 0.5px rgba(0, 0, 0, 0.13);
+  /* REMOVIDO: transition e transform no hover */
+}
+
+.balao-mensagem.minha {
+  background: linear-gradient(135deg, #d9fdd3 0%, #d1f4cc 100%);
+  margin-left: auto;
+  border-radius: 8px 8px 0 8px;
+}
+
+.balao-mensagem.recebida {
+  background: #ffffff;
+  margin-right: auto;
+  border-radius: 8px 8px 8px 0;
+}
+
+.light-theme .balao-mensagem.recebida {
+  background: #ffffff;
+}
+
+.dark-theme .balao-mensagem.recebida {
+  background: #202c33;
+}
+
+.dark-theme .balao-mensagem.minha {
+  background: #005c4b;
+}
+
+/* Mensagem citada */
+.mensagem-citada {
+  margin-bottom: 6px;
+  padding: 6px 8px;
+  border-left: 3px solid #06cf9c;
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 4px;
+}
+
+.mensagem-citada-autor {
+  font-size: 12px;
+  font-weight: 600;
+  color: #06cf9c;
+  margin-bottom: 2px;
+}
+
+.mensagem-citada-texto {
+  font-size: 12px;
+  color: #667781;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Conteúdo da mensagem */
+.mensagem-texto {
+  font-size: 14px;
+  line-height: 1.4;
+  color: #111b21;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.dark-theme .mensagem-texto {
+  color: #e9edef;
+}
+
+/* Footer com horário e status */
+.mensagem-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+  margin-top: 2px;
+}
+
+.mensagem-horario {
+  font-size: 11px;
+  color: #667781;
+  font-weight: 400;
+}
+
+.dark-theme .mensagem-horario {
+  color: #8696a0;
+}
+
+/* Ícones de status */
+.status-icon {
+  width: 16px;
+  height: 16px;
+  color: #667781;
+}
+
+.status-icon.lida {
+  color: #53bdeb;
+}
+
+.dark-theme .status-icon {
+  color: #8696a0;
+}
+
+/* Hover actions - aparece no hover da mensagem */
+.mensagem-hover-actions {
+  position: absolute;
+  top: 0;
+  right: 8px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+  z-index: 10;
+}
+
+.mensagem-wrapper:hover .mensagem-hover-actions {
+  opacity: 1;
+  pointer-events: all;
+}
+
+.hover-btn {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(0, 0, 0, 0.05);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  color: #54656f;
+}
+
+.hover-btn:hover {
+  background: rgba(0, 0, 0, 0.1);
+  transform: scale(1.1);
+}
+
+.dark-theme .hover-btn {
+  background: rgba(255, 255, 255, 0.1);
+  color: #aebac1;
+}
+
+.dark-theme .hover-btn:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+/* Menu de contexto */
+.menu-contexto {
+  position: fixed;
+  min-width: 200px;
+  background: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.26), 0 2px 10px rgba(0, 0, 0, 0.16);
+  padding: 8px 0;
+  z-index: 1000;
+  animation: menuSlideIn 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.dark-theme .menu-contexto {
+  background: #233138;
+}
+
+@keyframes menuSlideIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(-5px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.menu-item {
+  width: 100%;
+  padding: 12px 16px;
+  border: none;
+  background: transparent;
+  text-align: left;
+  font-size: 14px;
+  color: #111b21;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  transition: background-color 0.15s ease;
+}
+
+.menu-item:hover {
+  background: #f0f2f5;
+}
+
+.dark-theme .menu-item {
+  color: #e9edef;
+}
+
+.dark-theme .menu-item:hover {
+  background: #182229;
+}
+
+.menu-item.danger {
+  color: #ea4335;
+}
+
+.menu-item svg {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+/* Barra de emojis no menu */
+.menu-emojis {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 12px;
+  border-top: 1px solid #e9edef;
+}
+
+.dark-theme .menu-emojis {
+  border-top-color: #2a3942;
+}
+
+.emoji-btn {
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: transparent;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.emoji-btn:hover {
+  background: rgba(0, 0, 0, 0.05);
+  transform: scale(1.2);
+}
+
+.dark-theme .emoji-btn:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.emoji-btn-mais {
+  font-size: 16px;
+  color: #54656f;
+}
+
+.dark-theme .emoji-btn-mais {
+  color: #aebac1;
+}
+
+/* Overlay transparente */
+.menu-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 999;
+}
+
+/* Animações suaves */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.2s ease;
+}

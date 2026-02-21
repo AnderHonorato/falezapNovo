@@ -1,0 +1,179 @@
+
+## BLOCO 5: RECURSOS DE GRUPO
+
+### 33. Criar grupos
+**Descrição:** Criar novos grupos e adicionar participantes.
+
+**É possível implementar via API:** Não
+
+**Como implementar:**
+- API WhatsApp Business Cloud não suporta criação de grupos
+- Apenas conversas individuais (1:1)
+- Alternativa: Usar listas de transmissão (simulação de grupo no backend)
+
+**Exemplo prático:**
+```javascript
+// Não disponível via API
+// Solução alternativa: Sistema de "grupos virtuais" no seu site
+
+const grupoVirtual = {
+  id: 'grupo_1',
+  nome: 'Equipe Vendas',
+  membros: ['5511999999999', '5511888888888', '5511777777777'],
+  tipo: 'interno' // Apenas no seu sistema
+};
+
+// Enviar mensagem para todos do "grupo virtual"
+async function enviarParaGrupoVirtual(grupoId, mensagem) {
+  const grupo = buscarGrupo(grupoId);
+  
+  for (const membro of grupo.membros) {
+    await enviarMensagem(membro, `[${grupo.nome}] ${mensagem}`);
+  }
+}
+```
+
+**Observações:** WhatsApp Business API não tem funcionalidade de grupos. Apenas conversas individuais são suportadas.
+
+---
+
+### 34. Adicionar/remover participantes de grupos
+**Descrição:** Gerenciar membros de grupos existentes.
+
+**É possível implementar via API:** Não
+
+**Como implementar:**
+- Não disponível na API
+- Gerenciar "grupos virtuais" apenas no backend do site
+
+**Exemplo prático:**
+```javascript
+// Sistema de grupos virtuais (apenas no seu site)
+async function adicionarMembroGrupoVirtual(grupoId, numeroTelefone) {
+  await db.grupos.update(
+    {id: grupoId},
+    {$push: {membros: numeroTelefone}}
+  );
+  
+  // Notificar novo membro
+  await enviarMensagem(
+    numeroTelefone,
+    `Você foi adicionado ao grupo "${grupo.nome}"`
+  );
+}
+
+async function removerMembroGrupoVirtual(grupoId, numeroTelefone) {
+  await db.grupos.update(
+    {id: grupoId},
+    {$pull: {membros: numeroTelefone}}
+  );
+}
+```
+
+**Observações:** Funcionalidade exclusiva do app WhatsApp. Não disponível na API Business.
+
+---
+
+### 35. Enviar mensagens em grupos
+**Descrição:** Enviar mensagens para todos os participantes de um grupo.
+
+**É possível implementar via API:** Não
+
+**Como implementar:**
+- API não suporta grupos reais
+- Implementar sistema de broadcast para múltiplos destinatários
+
+**Exemplo prático:**
+```javascript
+// Broadcast manual (enviar para cada contato individualmente)
+async function broadcastParaGrupoVirtual(grupoId, mensagem) {
+  const grupo = await db.grupos.findOne({id: grupoId});
+  
+  const promessas = grupo.membros.map(membro => 
+    enviarMensagem(membro, mensagem)
+  );
+  
+  await Promise.all(promessas);
+  
+  // Salvar histórico do broadcast
+  await db.broadcasts.insert({
+    grupoId: grupoId,
+    mensagem: mensagem,
+    destinatarios: grupo.membros,
+    timestamp: new Date()
+  });
+}
+```
+
+**Observações:** Cada membro recebe mensagem individual. Não há contexto de "grupo" visível para os usuários.
+
+---
+
+### 36. Receber mensagens de grupos
+**Descrição:** Receber mensagens enviadas em grupos dos quais a empresa faz parte.
+
+**É possível implementar via API:** Não
+
+**Como implementar:**
+- API não recebe mensagens de grupos
+- Apenas mensagens diretas 1:1
+
+**Exemplo prático:**
+```javascript
+// Não disponível
+// API só recebe mensagens enviadas diretamente para o número business
+```
+
+**Observações:** Contas Business não podem participar de grupos via API. Apenas via aplicativo.
+
+---
+
+### 37. Listas de transmissão (Broadcast Lists)
+**Descrição:** Enviar mesma mensagem para múltiplos contatos, mas cada um recebe individualmente.
+
+**É possível implementar via API:** Sim (parcial)
+
+**Como implementar:**
+- API não tem conceito de "lista de transmissão"
+- Implementar: enviar mensagem individual para cada contato da lista
+- Criar estrutura de listas no banco de dados
+
+**Exemplo prático:**
+```javascript
+const listaTransmissao = {
+  id: 'lista_1',
+  nome: 'Clientes VIP',
+  contatos: ['5511999999999', '5511888888888', '5511777777777']
+};
+
+async function transmitirMensagem(listaId, mensagem) {
+  const lista = await db.listas.findOne({id: listaId});
+  
+  for (const contato of lista.contatos) {
+    await enviarMensagem(contato, mensagem);
+    
+    // Delay entre envios para evitar rate limiting
+    await delay(1000);
+  }
+  
+  // Registrar transmissão
+  await db.transmissoes.insert({
+    listaId: listaId,
+    mensagem: mensagem,
+    totalEnviados: lista.contatos.length,
+    timestamp: new Date()
+  });
+}
+
+function delay(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+```
+
+**Observações:** 
+- Cada contato recebe mensagem individual
+- Cuidado com rate limits (80 mensagens/segundo)
+- Templates recomendados para grandes volumes
+
+
+CONTINUE NO BLOCO6

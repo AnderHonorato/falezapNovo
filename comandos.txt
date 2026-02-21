@@ -1,0 +1,82 @@
+TOKEN PERMANENTE EAAQ05aomOUcBP6DatRjPjtnsIfkjGn9WvZAkXRXgikXNjqbY2myrZBJMX6sDl406ZBe9b9JEXZC2q1zeznt4JjjjkfC5cOZBlbCjDZC6TVIC3yjEchY1FIl56y9gVAVK7tskiqic0MaKCEVkwJ9MYNZBWpz4L2fLy8W0aTWPcpzZBhvX3ZCBXpYxms32YzBful6tNtwZDZD
+
+
+Frontend:
+
+cd frontend
+npm run dev
+
+Backend:
+
+cd backend
+
+cd Z:\Programação\MultiWhatsapp\falezap-sistema\backend
+npm run dev
+
+npm run dev
+
+
+limpar credenciais antigas
+
+cd Z:\Programação\MultiWhatsapp\falezap-sistema\backend
+rmdir /s /q dados_whatsapp
+mkdir dados_whatsapp
+
+
+COMANDOS PARA RECRIAR O BANCO:
+
+npx prisma migrate reset
+
+# 1. Apagar o banco atual
+npx prisma migrate reset --force
+
+# 2. Criar nova migração
+npx prisma migrate dev --name gruposuporte add
+
+# 3. Gerar o Prisma Client
+npx prisma generate
+
+# 4. (Opcional) Popular com dados de teste
+npx prisma db seed
+
+restaurar dados
+npx prisma db push
+
+
+http://localhost:3000/
+
+{"mensagem":"API FaleZap está funcionando!","versao":"1.0.0","endpoints":{"autenticacao":"/api/auth","usuarios":"/api/usuarios","whatsapp":"/api/whatsapp","empresas":"/api/empresas","status":"/api/status","analytics":"/api/analytics","blog":"/api/blog","categorias":"/api/categorias"}}
+
+
+DEIXAR ONLINE O LINK:
+
+C:\ngrok.exe config add-authtoken 34cHDQd9NkcYpkFlXUYxOIxLv4g_238ip3yhsgYow2jQusXXB
+
+BACKEND:
+C:\ngrok.exe http 3000 (executar primeiro)
+
+FRONTEND:
+C:\ngrok.exe http 5173
+
+  ➜  Local:   http://localhost:5173/
+  ➜  Network: http://192.168.1.3:5173/
+  ➜  Network: http://172.24.112.1:5173/
+  ➜  press h + enter to show help
+
+
+
+  # Pare tudo (Ctrl+C no Terminal 4)
+
+# Inicie o Cloudflare Tunnel
+cloudflared tunnel --url http://localhost:3000
+cloudflared tunnel --url http://localhost:5173
+```
+
+Vai aparecer:
+```
+Your quick tunnel is available at: https://xyz.trycloudflare.com
+```
+
+### **3️⃣ Acesse:**
+```
+https://xyz.trycloudflare.com

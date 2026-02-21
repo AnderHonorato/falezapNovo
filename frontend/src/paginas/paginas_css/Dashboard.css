@@ -1,0 +1,130 @@
+/* --- Dashboard.css --- */
+
+/* Importação de Fontes de Fallback (Roboto e Inter) */
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+/* =========================================
+   1. ESTRUTURA GLOBAL E FONTE (REFORÇADA)
+   ========================================= */
+
+/* Aplica ao container geral */
+.dashboard-container {
+  background-color: #ebebeb !important; /* Cinza estilo ML */
+  min-height: 100vh;
+}
+
+/* AQUI ESTÁ A CORREÇÃO:
+   Força a fonte em TODOS os elementos de texto dentro do dashboard.
+   Isso garante que h1, botões, spans e inputs obedeçam.
+*/
+.dashboard-container,
+.dashboard-container h1,
+.dashboard-container h2,
+.dashboard-container h3,
+.dashboard-container h4,
+.dashboard-container h5,
+.dashboard-container h6,
+.dashboard-container p,
+.dashboard-container span,
+.dashboard-container a,
+.dashboard-container li,
+.dashboard-container button,
+.dashboard-container input,
+.dashboard-container select,
+.dashboard-container textarea,
+.dashboard-container div {
+  font-family: "Proxima Nova", -apple-system, "Roboto", Arial, sans-serif !important;
+}
+
+/* Modo Escuro Global */
+.dark .dashboard-container {
+  background-color: #0f172a !important;
+}
+
+/* =========================================
+   2. ALTERAÇÃO DE COR DOS CARDS
+   ========================================= */
+
+/* Altera apenas a COR dos cards originais (bg-white) para o Offwhite/Amarelo */
+.dashboard-container .bg-white {
+  background-color: #fcfcfc !important; /* Cor Offwhite para Amarelo Papel */
+  border-color: #e6e6e6 !important;
+}
+
+/* Efeito Hover nos cards que são botões */
+.dashboard-container button.bg-white:hover {
+  background-color: #ffffff !important; /* Branco puro no hover */
+}
+
+/* Manter o Modo Escuro dos cards funcionando */
+.dark .dashboard-container .bg-white,
+.dark .dashboard-container .dark\:bg-gray-800 {
+  background-color: #1f2937 !important;
+  border-color: #374151 !important;
+}
+
+/* =========================================
+   3. ESTILOS ORIGINAIS (MANTIDOS)
+   ========================================= */
+
+/* Animações */
+@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes scaleIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+.animate-fadeIn { animation: fadeIn 0.4s ease-out forwards; }
+.animate-scaleIn { animation: scaleIn 0.3s ease-out forwards; }
+.animate-scale-in { animation: scaleIn 0.2s ease-out; }
+.animate-fade-in { animation: fadeIn 0.2s ease-out; }
+
+/* Scrollbar Customizada */
+.custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+.custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+.custom-scrollbar::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 20px; }
+.dark .custom-scrollbar::-webkit-scrollbar-thumb { background-color: #475569; }
+.scrollbar-thin::-webkit-scrollbar { width: 5px; }
+
+/* Chips de Filtro */
+.filter-scroll-container { display: flex; gap: 0.5rem; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none; }
+.filter-scroll-container::-webkit-scrollbar { display: none; }
+.filter-chip { display: flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 9999px; font-size: 11px; font-weight: 600; white-space: nowrap; transition: all 0.2s ease; border: 1px solid transparent; cursor: pointer; }
+
+/* Workload Bar (Tabela) */
+.workload-container { height: 4px; width: 60px; background-color: #e2e8f0; border-radius: 99px; margin-top: 6px; overflow: hidden; }
+.dark .workload-container { background-color: #374151; }
+.workload-track { height: 4px; background-color: #f3f4f6; border-radius: 9999px; overflow: hidden; }
+.dark .workload-track { background-color: #374151; }
+.workload-fill { height: 100%; border-radius: 9999px; transition: width 0.5s ease-out, background-color 0.3s; }
+
+/* Células da Tabela */
+.activity-cell-wrapper { display: flex; flex-direction: column; justify-content: center; max-width: 200px; overflow: hidden; }
+.activity-row-top { display: flex; align-items: center; gap: 6px; margin-bottom: 2px; }
+.activity-text { font-size: 12px; font-weight: 500; color: #374151; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dark .activity-text { color: #e5e7eb; }
+.recado-quote-row { font-size: 10px; font-style: italic; color: #6b7280; padding-left: 8px; border-left: 2px solid #e5e7eb; margin-left: 2px; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dark .recado-quote-row { color: #9ca3af; border-left-color: #374151; }
+
+/* Heatmap & Funnel */
+.heatmap-grid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 3px; }
+@media (min-width: 768px) { .heatmap-grid { grid-template-columns: repeat(24, 1fr); } }
+.heatmap-cell { height: 24px; border-radius: 4px; transition: all 0.2s; cursor: pointer; }
+.funnel-step { transition: width 1s ease-in-out; }
+
+/* Cards Hover Colors (Gradientes originais mantidos) */
+.card-hover-green:hover { background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important; border-color: transparent !important; }
+.card-hover-purple:hover { background: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%) !important; border-color: transparent !important; }
+.card-hover-blue:hover { background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%) !important; border-color: transparent !important; }
+.card-hover-red:hover { background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%) !important; border-color: transparent !important; }
+/* Forçar texto branco no hover dos cards coloridos */
+.card-hover-green:hover *, .card-hover-purple:hover *, .card-hover-blue:hover *, .card-hover-red:hover * { color: white !important; }
+.card-hover-green:hover .icon-bg, .card-hover-purple:hover .icon-bg, .card-hover-blue:hover .icon-bg, .card-hover-red:hover .icon-bg { background-color: rgba(255,255,255,0.2) !important; color: white !important; }
+
+/* Tooltip (Balões de ajuda - Mantidos originais) */
+.tooltip-trigger { position: relative; display: inline-flex; align-items: center; justify-content: center; margin-left: 6px; }
+.tooltip-content { opacity: 0; visibility: hidden; position: absolute; top: 100%; left: 50%; transform: translateX(-50%) translateY(5px); background-color: #1f2937; color: white; padding: 8px 12px; border-radius: 8px; font-size: 0.65rem; font-weight: normal; line-height: 1.4; white-space: normal; width: max-content; max-width: 220px; z-index: 60; transition: all 0.2s ease-in-out; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); pointer-events: none; text-align: center; }
+.tooltip-trigger:hover .tooltip-content { opacity: 1; visibility: visible; transform: translateX(-50%) translateY(10px); }
+.tooltip-content::before { content: ""; position: absolute; bottom: 100%; left: 50%; margin-left: -5px; border-width: 5px; border-style: solid; border-color: transparent transparent #1f2937 transparent; }
+
+/* Modal Profile (Mantido original) */
+.profile-modal-overlay { position: fixed; inset: 0; background-color: rgba(0,0,0,0.5); backdrop-filter: blur(4px); z-index: 50; }
+.profile-modal-container { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 90%; max-width: 600px; max-height: 90vh; background: white; border-radius: 1rem; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); z-index: 51; display: flex; flex-direction: column; overflow: hidden; border: 1px solid #e5e7eb; }
+.profile-avatar-container { width: 6rem; height: 6rem; border-radius: 9999px; overflow: hidden; border-width: 4px; display: flex; align-items: center; justify-content: center; }

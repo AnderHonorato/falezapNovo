@@ -1,0 +1,14 @@
+{
+  "ignore": [
+    "dados_whatsapp/*",
+    "dados_whatsapp/**/*",
+    "sessoes/*",
+    "node_modules/*",
+    "*.json"
+  ],
+  "watch": [
+    "src/**/*.js"
+  ],
+  "ext": "js",
+  "delay": "2000"
+}

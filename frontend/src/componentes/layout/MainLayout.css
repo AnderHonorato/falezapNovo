@@ -1,0 +1,93 @@
+/* --- MainLayout.css --- */
+
+/* Importação da Stack de Fontes */
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+/* Reset Global de Fonte para o Layout */
+* {
+  font-family: "Proxima Nova", -apple-system, "Roboto", Arial, sans-serif !important;
+}
+
+.main-layout-container {
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Utilitários de Animação */
+@keyframes slide-down {
+  from {
+    opacity: 0;
+    transform: translateY(-5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-slide-down {
+  animation: slide-down 0.2s ease-out;
+}
+
+/* Animação do Sino */
+@keyframes ring-icon {
+  0% { transform: rotate(0); }
+  5% { transform: rotate(20deg); }
+  10% { transform: rotate(-20deg); }
+  15% { transform: rotate(15deg); }
+  20% { transform: rotate(-15deg); }
+  25% { transform: rotate(10deg); }
+  30% { transform: rotate(-10deg); }
+  35% { transform: rotate(5deg); }
+  40% { transform: rotate(-5deg); }
+  45% { transform: rotate(0); }
+  100% { transform: rotate(0); }
+}
+
+.animate-ring {
+  animation: ring-icon 2.5s infinite ease-in-out;
+  transform-origin: top center;
+}
+
+/* Animação do Balão de Notificação */
+@keyframes fade-enter-static {
+  0% { 
+    opacity: 0; 
+    transform: translateY(-8px) scale(0.95); 
+  }
+  100% { 
+    opacity: 1; 
+    transform: translateY(0) scale(1); 
+  }
+}
+
+.animate-fade-enter {
+  animation: fade-enter-static 0.4s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+
+/* Transição de largura da busca */
+.transition-width {
+  transition-property: width, background-color, border-color, opacity;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 300ms;
+}
+
+/* Ajustes para o modo escuro nas listas suspensas */
+.dark .dropdown-text {
+  color: #f1f5f9 !important;
+}
+
+/* Line Clamp para texto cortado */
+.line-clamp-1 {
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}

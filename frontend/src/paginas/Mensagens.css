@@ -1,0 +1,346 @@
+/* frontend/src/paginas/Mensagens.css - VERSÃO COM LISTA MAIS LARGA */
+@import url('https://fonts.googleapis.com/css2?family=Roboto+Flex:wght@400;500;600;700;800&display=swap');
+
+/* ✅ LAYOUT DE 3 COLUNAS */
+.mensagens-container {
+  display: flex;
+  height: 100%;
+  overflow: hidden;
+  position: relative;
+  padding-left: 48px;
+  background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%);
+}
+
+/* Coluna 2: Lista de Conversas */
+.mensagens-sidebar-lista {
+  flex-shrink: 0;
+  /* ✅ ALTERADO: Aumentado de 320px para 400px para dar mais espaço */
+  width: 400px; 
+  height: 100%;
+  overflow: hidden;
+  position: relative;
+  z-index: 2;
+  border-right: 1px solid #e5e7eb;
+}
+
+/* Coluna 3: Chat Principal */
+.mensagens-main {
+  flex: 1;
+  height: 100%;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  z-index: 1;
+  background: #ffffff;
+  min-width: 0;
+}
+
+/* Estado Vazio - Design Moderno Compacto */
+.mensagens-empty {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #f9fafb 0%, #ffffff 100%);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Decoração de fundo */
+.mensagens-empty::before,
+.mensagens-empty::after {
+  content: '';
+  position: absolute;
+  border-radius: 50%;
+  opacity: 0.04;
+  pointer-events: none;
+}
+
+.mensagens-empty::before {
+  width: 400px;
+  height: 400px;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  top: -150px;
+  right: -150px;
+  animation: float 20s ease-in-out infinite;
+}
+
+.mensagens-empty::after {
+  width: 350px;
+  height: 350px;
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  bottom: -120px;
+  left: -120px;
+  animation: float 15s ease-in-out infinite reverse;
+}
+
+@keyframes float {
+  0%, 100% { transform: translate(0, 0) rotate(0deg); }
+  33% { transform: translate(20px, -20px) rotate(3deg); }
+  66% { transform: translate(-15px, 15px) rotate(-3deg); }
+}
+
+.mensagens-empty-content {
+  text-align: center;
+  max-width: 450px;
+  padding: 48px 32px;
+  animation: fadeInScale 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+  z-index: 1;
+}
+
+@keyframes fadeInScale {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(15px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.mensagens-empty-icon {
+  width: 120px;
+  height: 120px;
+  margin: 0 auto 24px;
+  position: relative;
+}
+
+.mensagens-empty-icon-wrapper {
+  width: 120px;
+  height: 120px;
+  background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+  border-radius: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 10px 40px rgba(16, 185, 129, 0.12);
+  border: 2px solid #d1fae5;
+  animation: pulse 3s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); box-shadow: 0 10px 40px rgba(16, 185, 129, 0.12); }
+  50% { transform: scale(1.03); box-shadow: 0 15px 50px rgba(16, 185, 129, 0.2); }
+}
+
+.mensagens-empty-icon svg {
+  width: 64px;
+  height: 64px;
+  color: #10b981;
+  filter: drop-shadow(0 2px 8px rgba(16, 185, 129, 0.15));
+}
+
+.mensagens-empty h2 {
+  font-size: 24px;
+  font-weight: 700;
+  background: linear-gradient(135deg, #111827 0%, #374151 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 12px;
+  letter-spacing: -0.01em;
+  font-family: 'Roboto Flex', system-ui, -apple-system, sans-serif;
+}
+
+.mensagens-empty p {
+  font-size: 14px;
+  color: #6b7280;
+  line-height: 1.5;
+  margin-bottom: 24px;
+  font-weight: 400;
+  font-family: 'Roboto Flex', system-ui, -apple-system, sans-serif;
+}
+
+.mensagens-empty-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.mensagens-empty-btn {
+  padding: 10px 20px;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  border: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: 'Roboto Flex', system-ui, -apple-system, sans-serif;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.mensagens-empty-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+.mensagens-empty-btn-primary {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: white;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.25);
+}
+
+.mensagens-empty-btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(16, 185, 129, 0.35);
+}
+
+.mensagens-empty-btn-primary:active {
+  transform: translateY(0);
+}
+
+.mensagens-empty-btn-secondary {
+  background: #f3f4f6;
+  color: #374151;
+  border: 1px solid #e5e7eb;
+}
+
+.mensagens-empty-btn-secondary:hover {
+  background: #e5e7eb;
+  border-color: #d1d5db;
+  transform: translateY(-2px);
+}
+
+/* Banner de Conexão */
+.connection-banner {
+  position: fixed;
+  top: 0;
+  left: 60px;
+  right: 0;
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  color: white;
+  padding: 10px 20px;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 600;
+  z-index: 1000;
+  animation: slideDown 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-family: 'Roboto Flex', system-ui, -apple-system, sans-serif;
+}
+
+@keyframes slideDown {
+  from {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.connection-banner-icon {
+  width: 16px;
+  height: 16px;
+  animation: pulse-dot 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+/* Tema Claro */
+.light-theme .mensagens-container {
+  background: linear-gradient(135deg, #ffffff 0%, #f9fafb 100%);
+}
+
+.light-theme .mensagens-main {
+  background: #ffffff;
+}
+
+.light-theme .mensagens-empty {
+  background: linear-gradient(135deg, #ffffff 0%, #f9fafb 100%);
+}
+
+.light-theme .mensagens-empty h2 {
+  background: linear-gradient(135deg, #111827 0%, #374151 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+  .mensagens-container {
+    padding-left: 0;
+  }
+
+  .mensagens-sidebar-lista {
+    width: 100%;
+    position: absolute;
+    left: 0;
+    top: 0;
+    z-index: 10;
+  }
+
+  .mensagens-main {
+    width: 100%;
+  }
+
+  .mensagens-empty-content {
+    padding: 32px 20px;
+  }
+
+  .mensagens-empty h2 {
+    font-size: 20px;
+  }
+
+  .mensagens-empty p {
+    font-size: 13px;
+  }
+
+  .mensagens-empty-icon-wrapper {
+    width: 100px;
+    height: 100px;
+  }
+
+  .mensagens-empty-icon svg {
+    width: 56px;
+    height: 56px;
+  }
+
+  .mensagens-empty-btn {
+    padding: 9px 16px;
+    font-size: 12px;
+  }
+}
+
+/* Scrollbar Personalizada */
+.mensagens-container ::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.mensagens-container ::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.03);
+  border-radius: 3px;
+}
+
+.mensagens-container ::-webkit-scrollbar-thumb {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  border-radius: 3px;
+  transition: background 0.2s;
+}
+
+.mensagens-container ::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+}
+
+/* Animação suave para transições */
+* {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}

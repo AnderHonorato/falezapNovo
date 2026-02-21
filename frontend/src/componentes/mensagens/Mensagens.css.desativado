@@ -1,0 +1,279 @@
+/* src/paginas/Mensagens.css - SEM BARRAS DE ROLAGEM */
+
+/* ========================================
+   RESET GLOBAL - REMOVER SCROLLBARS
+   ======================================== */
+
+* {
+  box-sizing: border-box;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+html, body, #root {
+  margin: 0;
+  padding: 0;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden !important;
+  -ms-overflow-style: none !important;
+  scrollbar-width: none !important;
+}
+
+html::-webkit-scrollbar,
+body::-webkit-scrollbar,
+#root::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+/* ========================================
+   SCROLLBAR INVISÍVEL GLOBAL
+   ======================================== */
+
+.scrollbar-hide,
+.scrollbar-telegram {
+  -ms-overflow-style: none !important;
+  scrollbar-width: none !important;
+}
+
+.scrollbar-hide::-webkit-scrollbar,
+.scrollbar-telegram::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+/* ========================================
+   CONTAINERS PRINCIPAIS
+   ======================================== */
+
+.mensagens-container,
+.chat-container,
+.area-mensagens-container {
+  overflow-x: hidden !important;
+  -ms-overflow-style: none !important;
+  scrollbar-width: none !important;
+}
+
+.mensagens-container::-webkit-scrollbar,
+.chat-container::-webkit-scrollbar,
+.area-mensagens-container::-webkit-scrollbar {
+  display: none !important;
+}
+
+/* ========================================
+   ÁREA DE MENSAGENS - FUNDO LIMPO
+   ======================================== */
+
+.area-mensagens-container {
+  background-color: #e5ddd5 !important;
+  background-image: none !important;
+}
+
+/* Balões de mensagem */
+.mensagem-enviada {
+  background-color: #dcf8c6 !important;
+  border: 1px solid #d1f4cc !important;
+}
+
+.mensagem-recebida {
+  background-color: #ffffff !important;
+  border: 1px solid #e0e0e0 !important;
+}
+
+/* ========================================
+   ANIMAÇÕES SUAVES
+   ======================================== */
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideInRight {
+  from { transform: translateX(100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes slideInLeft {
+  from { transform: translateX(-100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { transform: translateY(20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes slideDown {
+  from { transform: translateY(-10px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes scaleIn {
+  from { transform: scale(0.9); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+@keyframes bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+/* ========================================
+   CLASSES DE ANIMAÇÃO
+   ======================================== */
+
+.animate-fade-in { animation: fadeIn 0.2s ease-out; }
+.animate-slide-in-right { animation: slideInRight 0.3s ease-out; }
+.animate-slide-in-left { animation: slideInLeft 0.3s ease-out; }
+.animate-slide-up { animation: slideUp 0.3s ease-out; }
+.animate-slide-down { animation: slideDown 0.2s ease-out; }
+.animate-scale-in { animation: scaleIn 0.2s ease-out; }
+.animate-bounce-subtle { animation: bounce 1s ease-in-out 3; }
+
+/* ========================================
+   TRANSIÇÕES SUAVES
+   ======================================== */
+
+.smooth-transition {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.smooth-transition-fast {
+  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.theme-transition {
+  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+
+/* ========================================
+   EFEITOS ESPECIAIS
+   ======================================== */
+
+.glass-effect {
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.ripple-effect:active {
+  transform: scale(0.95);
+}
+
+.hw-accelerate {
+  transform: translateZ(0);
+  will-change: transform;
+}
+
+/* ========================================
+   HIGHLIGHT DE PESQUISA
+   ======================================== */
+
+.highlight-pesquisa {
+  animation: highlight-flash 0.5s ease-in-out 3;
+  background-color: rgba(255, 235, 59, 0.3) !important;
+  border: 2px solid #ffc107 !important;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+}
+
+@keyframes highlight-flash {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(255, 193, 7, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(255, 193, 7, 0);
+  }
+}
+
+/* ========================================
+   HIGHLIGHT DE ANOTAÇÕES
+   ======================================== */
+
+.highlight-anotacao {
+  animation: pulse-anotacao 0.6s ease-in-out 4;
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%) !important;
+  border: 3px solid #f59e0b !important;
+  border-radius: 12px;
+  box-shadow: 0 0 20px rgba(245, 158, 11, 0.4);
+  transform: scale(1.02);
+  transition: all 0.3s ease;
+}
+
+@keyframes pulse-anotacao {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.7);
+    transform: scale(1.02);
+  }
+  50% {
+    box-shadow: 0 0 0 10px rgba(245, 158, 11, 0);
+    transform: scale(1.04);
+  }
+}
+
+/* ========================================
+   UTILIDADES
+   ======================================== */
+
+.truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.line-clamp-1 {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 1;
+  line-height: 1.5;
+}
+
+.line-clamp-2 {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-height: 1.5;
+}
+
+/* ========================================
+   PREVENÇÃO DE SELEÇÃO
+   ======================================== */
+
+.no-select {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+/* ========================================
+   RESPONSIVIDADE
+   ======================================== */
+
+@media (max-width: 768px) {
+  .scrollbar-telegram::-webkit-scrollbar {
+    width: 0 !important;
+    height: 0 !important;
+    display: none !important;
+  }
+}
+
+/* ========================================
+   PERFORMANCE
+   ======================================== */
+
+.gpu-accelerated {
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  perspective: 1000px;
+}

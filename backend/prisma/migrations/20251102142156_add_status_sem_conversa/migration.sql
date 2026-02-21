@@ -1,0 +1,2 @@
+-- AlterEnum
+ALTER TYPE "StatusConversa" ADD VALUE 'SEM_CONVERSA_SALVA';

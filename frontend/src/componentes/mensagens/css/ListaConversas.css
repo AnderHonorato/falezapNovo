@@ -1,0 +1,467 @@
+/* frontend/src/componentes/mensagens/css/ListaConversas.css */
+
+:root {
+  --WDS-accent: #1DAA61;
+  --WDS-accent-deemphasized: #D9FDD3;
+  --WDS-accent-emphasized: #15603E;
+  --WDS-content-default: #0A0A0A;
+  --WDS-content-deemphasized: rgba(0, 0, 0, .6);
+  --WDS-content-disabled: #BDBDBD;
+  --WDS-secondary-negative: #EA0038;
+}
+
+* {
+  font-family: 'Roboto Flex', system-ui, -apple-system, sans-serif;
+}
+
+.lista-conversas {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: #ffffff; 
+  overflow: hidden;
+  border-right: 1px solid #e5e7eb;
+}
+
+/* --- HEADER COMPACTO --- */
+.lista-conversas-header {
+  background: #ffffff; /* Fundo branco para unir com a busca */
+  padding: 12px 16px 4px 16px; /* Padding inferior reduzido */
+  flex-shrink: 0;
+  min-height: 48px; /* Altura reduzida */
+  display: flex;
+  align-items: center;
+  border-bottom: none; /* ✅ LINHA REMOVIDA */
+}
+
+.header-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+}
+
+.header-titulo {
+  font-size: 18px; /* Texto levemente menor */
+  font-weight: 700;
+  color: #1e293b;
+  letter-spacing: -0.02em;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Status Conexão */
+.connection-status {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 32px;
+  width: 16px;
+  padding: 0;
+  background: transparent !important;
+}
+
+.status-dot {
+  width: 8px; /* Ponto menor */
+  height: 8px;
+  border-radius: 50%;
+  background-color: #d1d5db;
+  transition: background-color 0.3s ease;
+  box-shadow: none; 
+}
+
+.status-dot.connected { background-color: #10b981; }
+.status-dot.disconnected { background-color: #ef4444; }
+
+/* Botão Nova Conversa (Compacto) */
+.header-btn {
+  width: 32px; /* Botão menor */
+  height: 32px;
+  border-radius: 50%;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+  color: #10b981;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: none;
+}
+
+.header-btn:hover {
+  background: #10b981;
+  color: white;
+  border-color: #10b981;
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.25);
+}
+
+/* --- SEARCH BAR (Compacta e sem divisórias) --- */
+.lista-conversas-search {
+  padding: 4px 16px 8px 16px; /* Bem mais compacto */
+  background: #ffffff;
+  border-bottom: none; /* ✅ LINHA REMOVIDA */
+}
+
+.search-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.search-icon {
+  position: absolute;
+  left: 12px;
+  color: #94a3b8;
+  pointer-events: none;
+  z-index: 10;
+  width: 14px; /* Ícone menor */
+}
+
+.search-input {
+  width: 100%;
+  padding: 8px 12px 8px 36px; /* Input mais baixo */
+  border-radius: 20px;
+  border: 1px solid #e2e8f0;
+  background: #f1f5f9; /* Fundo cinza claro para destacar no branco */
+  font-size: 13px;
+  font-weight: 400;
+  color: #334155;
+  transition: all 0.2s;
+  outline: none;
+}
+
+.search-input::placeholder {
+  color: #94a3b8;
+}
+
+.search-input:focus {
+  background: #ffffff;
+  border-color: #10b981;
+  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.1);
+}
+
+.search-clear {
+  position: absolute;
+  right: 10px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: none;
+  background: #cbd5e1;
+  color: #ffffff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  transition: background 0.2s;
+}
+
+.search-clear:hover {
+  background: #94a3b8;
+}
+
+/* --- FILTROS (Compactos) --- */
+.lista-conversas-filtros {
+  display: flex;
+  gap: 6px;
+  padding: 0 16px 12px 16px; /* Sem padding top, colado na busca */
+  background: #ffffff;
+  overflow-x: auto;
+  white-space: nowrap;
+  scrollbar-width: none; 
+}
+
+.lista-conversas-filtros::-webkit-scrollbar {
+  display: none; 
+}
+
+.filtro-pill {
+  border: 1px solid #f1f5f9; 
+  border-radius: 16px;
+  padding: 4px 10px; /* Pílula menor */
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+  background: #f8fafc;
+  color: #64748b;
+}
+
+.filtro-pill:hover {
+  background: #e2e8f0;
+  color: #334155;
+  border-color: #e2e8f0;
+}
+
+.filtro-pill.active {
+  background: #ecfdf5;
+  color: #059669;
+  border-color: #d1fae5;
+}
+
+/* --- LISTA / SCROLL --- */
+.lista-conversas-scroll {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  background: #ffffff;
+}
+
+.lista-conversas-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+.lista-conversas-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.lista-conversas-scroll::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+.lista-conversas-scroll::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* --- LOADING & EMPTY --- */
+.lista-conversas-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  gap: 12px;
+  color: #94a3b8;
+}
+
+.spinner {
+  width: 28px;
+  height: 28px;
+  border: 3px solid #f1f5f9;
+  border-top-color: #10b981;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.lista-conversas-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  text-align: center;
+  height: 100%;
+  color: #94a3b8;
+}
+
+.lista-conversas-empty svg {
+  color: #e2e8f0;
+  margin-bottom: 12px;
+}
+
+.empty-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #334155;
+  margin-bottom: 4px;
+}
+
+.empty-subtitle {
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+/* --- MENU CONTEXTO --- */
+.menu-contexto {
+  position: fixed;
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 10px 25px -5px rgba(0,0,0,0.15), 0 0 0 1px rgba(0,0,0,0.05);
+  min-width: 220px;
+  overflow: hidden;
+  z-index: 9999;
+  padding: 6px;
+  border: none;
+}
+
+.menu-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: none;
+  background: none;
+  color: #334155;
+  font-size: 14px;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.1s;
+}
+
+.menu-item:hover {
+  background: #f1f5f9;
+}
+
+.menu-item.danger {
+  color: #ef4444;
+}
+.menu-item.danger:hover {
+  background: #fef2f2;
+}
+
+.menu-divider {
+  height: 1px;
+  background: #f1f5f9;
+  margin: 6px 0;
+}
+
+/* ============================================================
+   🌑 TEMA ESCURO (Dark Mode - WhatsApp Web Style)
+   ============================================================ */
+
+.lista-conversas.tema-escuro {
+  background: #111b21;
+  border-right-color: #2a3942;
+}
+
+/* Header Dark */
+.lista-conversas.tema-escuro .lista-conversas-header {
+  background: #111b21; /* Fundo contínuo */
+  border-bottom: none;
+}
+
+.lista-conversas.tema-escuro .header-titulo {
+  color: #e9edef;
+}
+
+.lista-conversas.tema-escuro .header-btn {
+  background: #202c33;
+  border-color: #2a3942;
+  color: #aebac1;
+}
+
+.lista-conversas.tema-escuro .header-btn:hover {
+  background: #00a884;
+  color: #111b21;
+  border-color: #00a884;
+}
+
+/* Search Dark */
+.lista-conversas.tema-escuro .lista-conversas-search {
+  background: #111b21;
+  border-bottom: none;
+}
+
+.lista-conversas.tema-escuro .search-input {
+  background: #202c33;
+  color: #d1d7db;
+  border-color: transparent;
+}
+
+.lista-conversas.tema-escuro .search-input::placeholder {
+  color: #8696a0;
+}
+
+.lista-conversas.tema-escuro .search-input:focus {
+  background: #202c33;
+  border-color: #00a884;
+}
+
+.lista-conversas.tema-escuro .search-icon {
+  color: #8696a0;
+}
+
+.lista-conversas.tema-escuro .search-clear {
+  background: #37404a;
+  color: #8696a0;
+}
+.lista-conversas.tema-escuro .search-clear:hover {
+  background: #4a5563;
+  color: #e9edef;
+}
+
+/* Filtros Dark */
+.lista-conversas.tema-escuro .lista-conversas-filtros {
+  background: #111b21;
+}
+
+.lista-conversas.tema-escuro .filtro-pill {
+  background: #202c33;
+  color: #8696a0;
+  border-color: transparent;
+}
+
+.lista-conversas.tema-escuro .filtro-pill:hover {
+  background: #2a3942;
+  color: #e9edef;
+}
+
+.lista-conversas.tema-escuro .filtro-pill.active {
+  background: #00a884;
+  color: #111b21;
+  border-color: #00a884;
+}
+
+/* List/Scroll Dark */
+.lista-conversas.tema-escuro .lista-conversas-scroll {
+  background: #111b21;
+}
+
+.lista-conversas.tema-escuro .lista-conversas-scroll::-webkit-scrollbar-thumb {
+  background: #37404a;
+}
+.lista-conversas.tema-escuro .lista-conversas-scroll::-webkit-scrollbar-thumb:hover {
+  background: #4a5563;
+}
+
+/* Empty/Loading Dark */
+.lista-conversas.tema-escuro .lista-conversas-empty,
+.lista-conversas.tema-escuro .lista-conversas-loading {
+  color: #8696a0;
+}
+
+.lista-conversas.tema-escuro .lista-conversas-empty svg {
+  color: #37404a;
+}
+
+.lista-conversas.tema-escuro .empty-title {
+  color: #e9edef;
+}
+
+.lista-conversas.tema-escuro .spinner {
+  border-color: #2a3942;
+  border-top-color: #00a884;
+}
+
+/* Menu Contexto Dark */
+.lista-conversas.tema-escuro .menu-contexto {
+  background: #233138;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+}
+
+.lista-conversas.tema-escuro .menu-item {
+  color: #d1d7db;
+}
+
+.lista-conversas.tema-escuro .menu-item:hover {
+  background: #111b21;
+}
+
+.lista-conversas.tema-escuro .menu-divider {
+  background: #2a3942;
+}
+
+.lista-conversas.tema-escuro .status-dot.connected {
+  background-color: #00a884;
+}

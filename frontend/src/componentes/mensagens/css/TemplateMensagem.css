@@ -1,0 +1,215 @@
+/* frontend/src/componentes/mensagens/css/TemplateMensagem.css */
+
+/* ====== TEMPLATE MENSAGEM ====== */
+.template-mensagem {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  border-radius: 8px;
+  overflow: hidden;
+  max-width: 100%;
+  background: #ffffff;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.dark-theme .template-mensagem {
+  background: #202c33;
+}
+
+/* ====== HEADER ====== */
+.template-header {
+  padding: 12px 16px;
+  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+  font-size: 15px;
+  font-weight: 700;
+  color: #0369a1;
+}
+
+.dark-theme .template-header {
+  background: linear-gradient(135deg, #1e3a5f 0%, #0f2942 100%);
+  color: #7dd3fc;
+  border-bottom-color: rgba(255, 255, 255, 0.05);
+}
+
+.template-header-media {
+  width: 100%;
+  max-height: 200px;
+  overflow: hidden;
+  background: #000000;
+}
+
+.template-header-media img,
+.template-header-media video {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* ====== BODY ====== */
+.template-body {
+  padding: 16px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #111b21;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+.dark-theme .template-body {
+  color: #e9edef;
+}
+
+/* ====== FOOTER ====== */
+.template-footer {
+  padding: 8px 16px 12px;
+  font-size: 12px;
+  color: #667781;
+  font-style: italic;
+}
+
+.dark-theme .template-footer {
+  color: #8696a0;
+}
+
+/* ====== BUTTONS ====== */
+.template-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  border-top: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.dark-theme .template-buttons {
+  border-top-color: rgba(255, 255, 255, 0.05);
+}
+
+.template-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 16px;
+  border: none;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+  background: transparent;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  color: #0284c7;
+}
+
+.template-button:last-child {
+  border-bottom: none;
+}
+
+.template-button:hover:not(:disabled) {
+  background: rgba(2, 132, 199, 0.05);
+}
+
+.template-button:active:not(:disabled) {
+  background: rgba(2, 132, 199, 0.1);
+}
+
+.template-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.dark-theme .template-button {
+  border-bottom-color: rgba(255, 255, 255, 0.05);
+  color: #0ea5e9;
+}
+
+.dark-theme .template-button:hover:not(:disabled) {
+  background: rgba(14, 165, 233, 0.1);
+}
+
+/* Tipos de botão */
+.template-button-url {
+  color: #0284c7;
+}
+
+.template-button-phone {
+  color: #059669;
+}
+
+.template-button-reply {
+  color: #7c3aed;
+}
+
+.template-button-copy {
+  color: #ea580c;
+}
+
+.dark-theme .template-button-url {
+  color: #38bdf8;
+}
+
+.dark-theme .template-button-phone {
+  color: #34d399;
+}
+
+.dark-theme .template-button-reply {
+  color: #a78bfa;
+}
+
+.dark-theme .template-button-copy {
+  color: #fb923c;
+}
+
+.template-button svg {
+  flex-shrink: 0;
+}
+
+/* ====== TEMPLATE SIMPLES (fallback) ====== */
+.template-mensagem-simples {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px;
+  background: rgba(251, 191, 36, 0.1);
+  border-left: 3px solid #fbbf24;
+  border-radius: 8px;
+}
+
+.template-icon {
+  font-size: 24px;
+  line-height: 1;
+}
+
+.template-content {
+  flex: 1;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #111b21;
+  white-space: pre-wrap;
+}
+
+.dark-theme .template-content {
+  color: #e9edef;
+}
+
+/* ====== RESPONSIVO ====== */
+@media (max-width: 480px) {
+  .template-header {
+    padding: 10px 12px;
+    font-size: 14px;
+  }
+
+  .template-body {
+    padding: 12px;
+    font-size: 13px;
+  }
+
+  .template-footer {
+    padding: 6px 12px 10px;
+    font-size: 11px;
+  }
+
+  .template-button {
+    padding: 10px 12px;
+    font-size: 13px;
+  }
+}

@@ -1,0 +1,1004 @@
+/* frontend/src/componentes/mensagens/css/MensagemItem.css - ✅ VERSÃO COMPLETA CORRIGIDA */
+
+/* Importar CSS de reações melhoradas */
+@import url('./MensagemReacoes.css');
+
+/* Importar CSS do Lightbox */
+@import url('./Lightbox.css');
+/* ============================================ */
+/* VARIÁVEIS CSS */
+/* ============================================ */
+:root {
+  --cor-erro-fundo: #fffbeb;
+  --cor-erro-borda: #fef3c7;
+  --cor-erro-texto: #b45309;
+  --cor-fundo-bolha-reacao: #ffffff;
+  --cor-borda-reacao: #e5e7eb;
+  --cor-bolha-minha-reacao: #e7f8f3;
+  --cor-primaria-reacao: #00a884;
+}
+
+:root[data-theme='dark'] {
+  --cor-erro-fundo: #452c00;
+  --cor-erro-borda: #5e3f00;
+  --cor-erro-texto: #fde68a;
+  --cor-fundo-bolha-reacao: #2a3942;
+  --cor-borda-reacao: #425059;
+  --cor-bolha-minha-reacao: #075e54;
+  --cor-primaria-reacao: #25d366;
+}
+
+/* ============================================ */
+/* ESTRUTURA DE LAYOUT */
+/* ============================================ */
+.mensagem-wrapper {
+  display: block;
+  padding: 2px 10px;
+  margin-bottom: 8px;
+  position: relative;
+  z-index: 1;
+  transition: background-color 0.15s ease;
+}
+
+.mensagem-layout-flex {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+}
+
+.mensagem-wrapper.minha .mensagem-layout-flex {
+  justify-content: flex-end;
+}
+
+.mensagem-wrapper.deles .mensagem-layout-flex {
+  justify-content: flex-start;
+}
+
+.mensagem-conteudo-wrapper {
+  display: flex;
+  flex-direction: column;
+  max-width: 70%;
+  position: relative;
+}
+
+.mensagem-wrapper.minha .mensagem-conteudo-wrapper {
+  align-items: flex-end;
+}
+
+.mensagem-wrapper.deles .mensagem-conteudo-wrapper {
+  align-items: flex-start;
+}
+
+/* ============================================ */
+/* AVATAR */
+/* ============================================ */
+.mensagem-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  margin-right: 8px;
+  margin-top: 4px;
+  flex-shrink: 0;
+  background-color: var(--cor-fundo-secundaria);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.mensagem-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.mensagem-avatar-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #6b7c85;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.light-theme .mensagem-avatar-placeholder {
+  background-color: #dfe5e7;
+  color: #667781;
+}
+
+/* ============================================ */
+/* BOLHA DE MENSAGEM */
+/* ============================================ */
+.mensagem-bolha {
+  position: relative;
+  max-width: 380px !important;
+  min-width: 50px !important;
+  width: fit-content !important;
+  height: auto !important;
+  border-radius: 12px;
+  padding: 8px 12px !important;
+  box-shadow: 0 1px 0.5px rgba(0, 0, 0, 0.13);
+  display: inline-flex !important;
+  flex-direction: column;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  z-index: 10;
+  transition: background-color 0.2s ease;
+}
+
+.mensagem-bolha.minha {
+  background-color: var(--cor-bolha-minha);
+  border-bottom-right-radius: 4px;
+}
+
+.mensagem-bolha.deles {
+  background-color: var(--cor-bolha-deles);
+  border-bottom-left-radius: 4px;
+}
+
+/* Setas das bolhas */
+.mensagem-bolha.minha::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  right: -6px;
+  width: 12px;
+  height: 12px;
+  background-color: var(--cor-bolha-minha);
+  clip-path: polygon(0 0, 100% 0, 0 100%);
+}
+
+.mensagem-bolha.deles::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: -6px;
+  width: 12px;
+  height: 12px;
+  background-color: var(--cor-bolha-deles);
+  clip-path: polygon(100% 0, 100% 100%, 0 100%);
+}
+
+/* Tema claro */
+.light-theme .mensagem-bolha.minha {
+  background-color: #d9fdd3;
+}
+
+.light-theme .mensagem-bolha.deles {
+  background-color: #ffffff;
+}
+
+.light-theme .mensagem-bolha.minha::after {
+  background-color: #d9fdd3;
+}
+
+.light-theme .mensagem-bolha.deles::after {
+  background-color: #ffffff;
+}
+
+/* ============================================ */
+/* AÇÕES DE HOVER (AO LADO DA BOLHA) */
+/* ============================================ */
+.mensagem-hover-actions {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  background-color: var(--cor-fundo-secundaria);
+  border: 1px solid var(--cor-borda);
+  border-radius: 16px;
+  box-shadow: 0 2px 8px rgba(255, 255, 255, 0.15);
+  display: flex;
+  z-index: 100;
+  visibility: hidden;
+  opacity: 0;
+  transition: all 0.2s ease-in-out;
+  pointer-events: none;
+}
+
+.mensagem-bolha:hover .mensagem-hover-actions {
+  visibility: visible;
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.mensagem-hover-actions:hover {
+  visibility: visible;
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.mensagem-wrapper.minha .mensagem-hover-actions {
+  right: 100%;
+  margin-right: 8px;
+}
+
+.mensagem-wrapper.deles .mensagem-hover-actions {
+  left: 100%;
+  margin-left: 8px;
+}
+
+.hover-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  color: #e5e7eb;
+  pointer-events: auto;
+}
+
+.hover-btn:hover {
+  background: rgba(75, 85, 99, 0.5);
+  transform: scale(1.15);
+}
+
+.light-theme .mensagem-hover-actions {
+  background-color: rgba(156, 163, 175, 0.95);
+  border: 1px solid rgba(209, 213, 219, 0.3);
+}
+
+.light-theme .hover-btn {
+  color: #f9fafb;
+}
+
+/* ============================================ */
+/* MENU CONTEXTO - Z-INDEX MÁXIMO */
+/* ============================================ */
+.menu-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 2147483646;
+  pointer-events: auto;
+  background: transparent;
+}
+
+.menu-contexto {
+  position: fixed;
+  z-index: 2147483647;
+  background: #233138;
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  padding: 8px 0;
+  width: 220px;
+  max-height: 80vh;
+  overflow-y: auto;
+  pointer-events: auto;
+  color: #e9edef;
+}
+
+/* Tema claro para menu contexto */
+.menu-contexto.light-theme {
+  background: #ffffff !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2) !important;
+  color: #111b21 !important;
+}
+
+body[data-theme="light"] .menu-contexto {
+  background: #ffffff !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2) !important;
+  color: #111b21 !important;
+}
+
+body.light-theme .menu-contexto {
+  background: #ffffff !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2) !important;
+  color: #111b21 !important;
+}
+
+.menu-item {
+  width: 100%;
+  padding: 12px 16px;
+  border: none;
+  background: transparent;
+  text-align: left;
+  font-size: 14px;
+  color: #e9edef;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  transition: background-color 0.15s ease;
+  pointer-events: auto;
+}
+
+.menu-item:hover {
+  background: #182229;
+}
+
+.menu-contexto.light-theme .menu-item {
+  color: #111b21 !important;
+}
+
+.menu-contexto.light-theme .menu-item:hover {
+  background: #f0f2f5 !important;
+}
+
+.menu-item.danger {
+  color: #ea4335 !important;
+}
+
+.menu-item.primary {
+  color: #3b82f6 !important;
+  font-weight: 500;
+}
+
+.menu-item svg {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+.light-theme .menu-contexto {
+  background: #ffffff;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+}
+
+.light-theme .menu-item {
+  color: #111b21;
+}
+
+.light-theme .menu-item:hover {
+  background: #f0f2f5;
+}
+
+/* ============================================ */
+/* BARRA DE EMOJIS */
+/* ============================================ */
+.menu-emojis {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 12px;
+  border-top: 1px solid #2a3942;
+  pointer-events: auto;
+}
+
+.menu-contexto.light-theme .menu-emojis {
+  border-top: 1px solid #e9edef !important;
+}
+
+.emoji-btn {
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: transparent;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+  pointer-events: auto;
+}
+
+.emoji-btn:hover {
+  background: rgba(255, 255, 255, 0.05);
+  transform: scale(1.2);
+}
+
+.menu-contexto.light-theme .emoji-btn:hover {
+  background: rgba(0, 0, 0, 0.05) !important;
+}
+
+.emoji-btn-mais {
+  font-size: 16px;
+  color: #aebac1;
+}
+
+.menu-contexto.light-theme .emoji-btn-mais {
+  color: #54656f !important;
+}
+
+/* ============================================ */
+/* MENSAGEM CITADA */
+/* ============================================ */
+.mensagem-citada {
+  background: rgba(0, 0, 0, 0.1);
+  border-left: 4px solid #10b981;
+  border-radius: 8px;
+  padding: 8px 12px;
+  margin-bottom: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.mensagem-citada:hover {
+  background: rgba(0, 0, 0, 0.15);
+  transform: translateX(2px);
+}
+
+.light-theme .mensagem-citada {
+  background: rgba(16, 185, 129, 0.08);
+}
+
+.light-theme .mensagem-citada:hover {
+  background: rgba(16, 185, 129, 0.12);
+}
+
+.citada-thumb {
+  width: 40px;
+  height: 40px;
+  border-radius: 6px;
+  overflow: hidden;
+  flex-shrink: 0;
+  background: rgba(0, 0, 0, 0.1);
+}
+
+.citada-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.citada-conteudo {
+  flex: 1;
+  min-width: 0;
+}
+
+.citada-autor {
+  font-size: 12px;
+  font-weight: 600;
+  color: #10b981;
+  margin: 0 0 4px 0;
+}
+
+.citada-texto {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.7);
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.light-theme .citada-texto {
+  color: rgba(0, 0, 0, 0.6);
+}
+
+.mensagem-wrapper.highlighted {
+  animation: highlight 3s ease;
+}
+
+@keyframes highlight {
+  0%, 100% {
+    background: transparent;
+  }
+  10%, 90% {
+    background: rgba(16, 185, 129, 0.2);
+  }
+}
+
+/* ============================================ */
+/* TEXTO DA MENSAGEM */
+/* ============================================ */
+.mensagem-texto {
+  font-size: 14.2px;
+  line-height: 19px;
+  color: #e9edef;
+  white-space: pre-wrap;
+  word-break: break-word;
+  margin: 0;
+  padding: 0;
+  display: inline;
+}
+
+.mensagem-bolha.multilinha .mensagem-texto {
+  display: block;
+  padding-right: 70px;
+  margin-bottom: -18px;
+}
+
+.light-theme .mensagem-texto {
+  color: #111b21;
+}
+
+.code-format {
+  font-family: monospace;
+  background-color: rgba(0, 0, 0, 0.1);
+  padding: 1px 3px;
+  border-radius: 3px;
+}
+
+.light-theme .code-format {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.link-format {
+  color: #3b82f6;
+  text-decoration: underline;
+}
+
+/* ============================================ */
+/* MÍDIA */
+/* ============================================ */
+.mensagem-midia {
+  border-radius: 12px;
+  overflow: hidden;
+  margin-bottom: 4px;
+  max-width: 100%;
+}
+
+.midia-img,
+.midia-video {
+  width: 100%;
+  max-width: 330px;
+  display: block;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.midia-img:hover,
+.midia-video:hover {
+  transform: scale(1.02);
+}
+
+.midia-legenda {
+  padding: 8px 8px 4px;
+  font-size: 14px;
+  line-height: 1.4;
+  color: #e9edef;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.light-theme .midia-legenda {
+  color: #111b21;
+}
+
+/* ============================================ */
+/* ÁUDIO */
+/* ============================================ */
+.mensagem-audio {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 4px 0;
+  min-width: 280px;
+}
+
+.audio-play-btn {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: none;
+  background-color: #00a884;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.audio-play-btn:hover {
+  transform: scale(1.1);
+}
+
+.audio-waveform {
+  flex: 1;
+  height: 30px;
+  background-color: rgba(255, 255, 255, 0.1);
+  border-radius: 15px;
+  position: relative;
+  overflow: hidden;
+}
+
+.audio-progress {
+  height: 100%;
+  background-color: #00a884;
+  border-radius: 15px;
+  position: absolute;
+  left: 0;
+  top: 0;
+}
+
+.audio-duracao {
+  font-size: 11px;
+  color: #8696a0;
+  font-weight: 500;
+  flex-shrink: 0;
+}
+
+/* ============================================ */
+/* DOCUMENTO */
+/* ============================================ */
+.mensagem-documento {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px;
+  background-color: rgba(0, 0, 0, 0.1);
+  border-radius: 12px;
+  min-width: 280px;
+}
+
+.light-theme .mensagem-documento {
+  background-color: rgba(0, 0, 0, 0.03);
+}
+
+.documento-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #374151;
+  color: #8696a0;
+  flex-shrink: 0;
+}
+
+.light-theme .documento-icon {
+  background-color: #f1f5f9;
+}
+
+.documento-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.documento-nome {
+  display: block;
+  font-size: 14px;
+  font-weight: 500;
+  color: #e9edef;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.light-theme .documento-nome {
+  color: #111b21;
+}
+
+.documento-tamanho {
+  display: block;
+  font-size: 11px;
+  color: #8696a0;
+}
+
+.light-theme .documento-tamanho {
+  color: #667781;
+}
+
+.documento-download {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  color: #8696a0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.documento-download:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: #e9edef;
+  transform: scale(1.1);
+}
+
+.light-theme .documento-download:hover {
+  background-color: #f1f5f9;
+  color: #111b21;
+}
+
+/* ============================================ */
+/* MENSAGEM DE BOTÃO/FORMULÁRIO */
+/* ============================================ */
+.mensagem-button-response {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  background: rgba(16, 185, 129, 0.15);
+  border-radius: 10px;
+  border-left: 3px solid #10b981;
+  margin-bottom: 4px;
+}
+
+.button-icon {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #10b981;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: bold;
+  flex-shrink: 0;
+}
+
+.light-theme .mensagem-button-response {
+  background: rgba(16, 185, 129, 0.1);
+  border-left-color: #10b981;
+}
+
+/* ============================================ */
+/* FOOTER */
+/* ============================================ */
+.mensagem-footer {
+  display: inline-flex !important;
+  align-items: center;
+  gap: 4px;
+  margin-left: 8px;
+  line-height: 19px;
+  vertical-align: baseline;
+  white-space: nowrap;
+}
+
+.mensagem-bolha.multilinha .mensagem-footer {
+  float: right;
+  margin: 0;
+  margin-top: 2px;
+  line-height: 1;
+}
+
+.mensagem-horario {
+  font-size: 11px;
+  color: rgba(233, 237, 239, 0.6);
+  font-weight: 400;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+}
+
+.light-theme .mensagem-horario {
+  color: #667781;
+}
+
+.status-icon {
+  width: 16px;
+  height: 16px;
+  color: #8696a0;
+  display: inline-flex;
+  align-items: center;
+  line-height: 1;
+}
+
+.status-icon.lida {
+  color: #53bdeb;
+}
+
+.status-icon.entregue {
+  color: #8696a0;
+}
+
+.status-icon.enviada {
+  color: #8696a0;
+}
+
+.status-icon.enviando {
+  color: #9ca3af;
+}
+
+.status-icon.enviando .pulse {
+  animation: pulse 1.5s infinite;
+}
+
+.status-icon.erro {
+  color: #ef4444;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.status-icon.erro:hover {
+  transform: scale(1.2);
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.5;
+    transform: scale(0.95);
+  }
+}
+
+/* ============================================ */
+/* ESTADOS ESPECIAIS */
+/* ============================================ */
+.mensagem-wrapper.highlighted {
+  background-color: rgba(251, 191, 36, 0.15);
+  border-radius: 8px;
+  animation: highlightPulse 2s ease-in-out 2;
+}
+
+.mensagem-wrapper.highlighted .mensagem-bolha {
+  background-color: var(--cor-destaque-fundo);
+}
+
+@keyframes highlightPulse {
+  0%, 100% {
+    background-color: rgba(251, 191, 36, 0.15);
+  }
+  50% {
+    background-color: rgba(251, 191, 36, 0.3);
+  }
+}
+
+.mensagem-wrapper.com-erro .mensagem-bolha {
+  opacity: 0.7;
+  border: 1px solid #ef4444;
+}
+
+.mensagem-wrapper.temporaria .mensagem-bolha {
+  opacity: 0.7;
+}
+
+/* ============================================ */
+/* MENSAGEM DE ERRO */
+/* ============================================ */
+.mensagem-erro-container {
+  margin-top: 4px;
+  padding: 8px 12px;
+  background-color: var(--cor-erro-fundo);
+  border: 1px solid var(--cor-erro-borda);
+  border-radius: 8px;
+  width: fit-content;
+  max-width: 100%;
+}
+
+.mensagem-erro-texto {
+  font-size: 0.8rem;
+  font-style: italic;
+  color: var(--cor-erro-texto);
+  display: block;
+  margin-bottom: 6px;
+}
+
+.mensagem-erro-botoes {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.mensagem-erro-botao-alternativa,
+.mensagem-erro-botao-cancelar {
+  border: none;
+  padding: 4px 10px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s ease;
+}
+
+.mensagem-erro-botao-alternativa {
+  background: #f8b42a;
+  color: #333;
+}
+
+.mensagem-erro-botao-alternativa:hover {
+  opacity: 0.9;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.mensagem-erro-botao-cancelar {
+  background: transparent;
+  color: var(--cor-texto-secundaria);
+  padding: 4px;
+}
+
+.mensagem-erro-botao-cancelar:hover {
+  color: var(--cor-texto-primaria);
+  text-decoration: underline;
+}
+
+/* ============================================ */
+/* LIGHTBOX (MODAL DE MÍDIA) */
+/* ============================================ */
+.lightbox-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  animation: fadeIn 0.2s ease;
+  cursor: pointer;
+}
+
+.lightbox-content {
+  position: relative;
+  max-width: 90vw;
+  max-height: 90vh;
+  cursor: default;
+}
+
+.lightbox-content img,
+.lightbox-content video {
+  width: auto;
+  height: auto;
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  border-radius: 8px;
+}
+
+.lightbox-close-btn {
+  position: absolute;
+  top: -45px;
+  right: -5px;
+  background: transparent;
+  border: none;
+  color: white;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+  z-index: 10001;
+}
+
+.lightbox-close-btn:hover {
+  transform: scale(1.1);
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* ============================================ */
+/* RESPONSIVO */
+/* ============================================ */
+@media (max-width: 768px) {
+  .mensagem-bolha {
+    max-width: 320px;
+  }
+
+  .mensagem-avatar {
+    width: 28px;
+    height: 28px;
+    margin-right: 6px;
+  }
+
+  .mensagem-hover-actions {
+    padding: 2px;
+    border-radius: 14px;
+  }
+
+  .hover-btn {
+    width: 26px;
+    height: 26px;
+  }
+
+  .lightbox-content {
+    max-width: 95vw;
+    max-height: 95vh;
+  }
+}

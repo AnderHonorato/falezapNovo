@@ -1,0 +1,590 @@
+## BLOCO 3: COMUNICAÇÃO MULTIMÍDIA
+
+### 13. Enviar imagens
+**Descrição:** Enviar fotos e imagens (JPG, PNG) para contatos.
+
+**É possível implementar via API:** Sim
+
+**Como implementar:**
+- Opção 1: Enviar URL pública da imagem
+- Opção 2: Upload via Media API primeiro, depois enviar media_id
+- Endpoint: `POST https://graph.facebook.com/v21.0/{phone_number_id}/messages`
+- Type: `image`
+
+**Exemplo prático:**
+```javascript
+// Opção 1: Via URL
+async function enviarImagemURL(destinatario, urlImagem, legenda) {
+  await fetch(`https://graph.facebook.com/v21.0/${PHONE_NUMBER_ID}/messages`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${ACCESS_TOKEN}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      messaging_product: "whatsapp",
+      to: destinatario,
+      type: "image",
+      image: {
+        link: urlImagem,
+        caption: legenda // Opcional
+      }
+    })
+  });
+}
+
+// Opção 2: Upload primeiro
+async function enviarImagemUpload(destinatario, arquivo) {
+  // 1. Upload da imagem
+  const formData = new FormData();
+  formData.append('file', arquivo);
+  formData.append('messaging_product', 'whatsapp');
+  
+  const uploadResponse = await fetch(
+    `https://graph.facebook.com/v21.0/${PHONE_NUMBER_ID}/media`,
+    {
+      method: 'POST',
+      headers: {'Authorization': `Bearer ${ACCESS_TOKEN}`},
+      body: formData
+    }
+  );
+  const {id: mediaId} = await uploadResponse.json();
+  
+  // 2. Enviar mensagem com media_id
+  await fetch(`https://graph.facebook.com/v21.0/${PHONE_NUMBER_ID}/messages`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${ACCESS_TOKEN}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      messaging_product: "whatsapp",
+      to: destinatario,
+      type: "image",
+      image: {id: mediaId}
+    })
+  });
+}
+```
+
+**Observações:** Imagens via URL devem estar publicamente acessíveis (HTTPS). Tamanho máximo: 5MB. Formatos: JPG, JPEG, PNG.
+
+---
+
+### 14. Receber imagens
+**Descrição:** Receber imagens enviadas pelos usuários.
+
+**É possível implementar via API:** Sim
+
+**Como implementar:**
+- Webhook recebe mensagem com type: `image`
+- Obter media_id do payload
+- Baixar imagem via Media API
+- Endpoint download: `GET https://graph.facebook.com/v21.0/{media_id}`
+
+**Exemplo prático:**
+```javascript
+app.post('/webhook', async (req, res) => {
+  const message = req.body.entry?.[0]?.changes?.[0]?.value?.messages?.[0];
+  
+  if (message?.type === 'image') {
+    const mediaId = message.image.id;
+    const caption = message.image.caption || '';
+    
+    // 1. Obter URL da mídia
+    const mediaResponse = await fetch(
+      `https://graph.facebook.com/v21.0/${mediaId}`,
+      {headers: {'Authorization': `Bearer ${ACCESS_TOKEN}`}}
+    );
+    const {url} = await mediaResponse.json();
+    
+    // 2. Baixar arquivo
+    const imageResponse = await fetch(url, {
+      headers: {'Authorization': `Bearer ${ACCESS_TOKEN}`}
+    });
+    const imageBuffer = await imageResponse.buffer();
+    
+    // 3. Salvar no servidor
+    fs.writeFileSync(`./uploads/${mediaId}.jpg`, imageBuffer);
+    
+    salvarMensagemNoBanco({
+      from: message.from,
+      type: 'image',
+      mediaId: mediaId,
+      caption: caption,
+      localPath: `./uploads/${mediaId}.jpg`
+    });
+  }
+  
+  res.sendStatus(200);
+});
+```
+
+**Observações:** URLs de mídia expiram em poucos minutos. Baixar imediatamente. A mídia fica disponível por 30 dias na API.
+
+---
+
+### 15. Enviar vídeos
+**Descrição:** Enviar vídeos (MP4, 3GP) para contatos.
+
+**É possível implementar via API:** Sim
+
+**Como implementar:**
+- Mesmo processo de imagens, mas type: `video`
+- Enviar via URL ou upload
+- Suporta legenda (caption)
+
+**Exemplo prático:**
+```javascript
+async function enviarVideo(destinatario, urlVideo, legenda) {
+  await fetch(`https://graph.facebook.com/v21.0/${PHONE_NUMBER_ID}/messages`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${ACCESS_TOKEN}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      messaging_product: "whatsapp",
+      to: destinatario,
+      type: "video",
+      video: {
+        link: urlVideo,
+        caption: legenda
+      }
+    })
+  });
+}
+```
+
+**Observações:** Tamanho máximo: 16MB. Formatos: MP4, 3GPP. Codec recomendado: H.264, AAC audio.
+
+---
+
+### 16. Receber vídeos
+**Descrição:** Receber vídeos enviados pelos usuários.
+
+**É possível implementar via API:** Sim
+
+**Como implementar:**
+- Webhook recebe type: `video`
+- Processo idêntico ao de imagens
+- Baixar via Media API com media_id
+
+**Exemplo prático:**
+```javascript
+if (message?.type === 'video') {
+  const mediaId = message.video.id;
+  const caption = message.video.caption || '';
+  
+  // Obter URL e baixar (mesmo processo de imagens)
+  const mediaResponse = await fetch(
+    `https://graph.facebook.com/v21.0/${mediaId}`,
+    {headers: {'Authorization': `Bearer ${ACCESS_TOKEN}`}}
+  );
+  const {url, mime_type} = await mediaResponse.json();
+  
+  const videoResponse = await fetch(url, {
+    headers: {'Authorization': `Bearer ${ACCESS_TOKEN}`}
+  });
+  const videoBuffer = await videoResponse.buffer();
+  
+  const extension = mime_type === 'video/mp4' ? 'mp4' : '3gp';
+  fs.writeFileSync(`./uploads/${mediaId}.${extension}`, videoBuffer);
+}
+```
+
+**Observações:** Vídeos podem demorar para processar. URLs expiram rapidamente, baixar imediatamente.
+
+---
+
+### 17. Enviar áudios/mensagens de voz
+**Descrição:** Enviar arquivos de áudio ou mensagens de voz gravadas.
+
+**É possível implementar via API:** Sim
+
+**Como implementar:**
+- Type: `audio` (áudio normal/música)
+- Formatos suportados: AAC, M4A, AMR, MP3, OGG (codecs Opus)
+- Enviar via URL ou upload
+
+**Exemplo prático:**
+```javascript
+async function enviarAudio(destinatario, urlAudio) {
+  await fetch(`https://graph.facebook.com/v21.0/${PHONE_NUMBER_ID}/messages`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${ACCESS_TOKEN}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      messaging_product: "whatsapp",
+      to: destinatario,
+      type: "audio",
+      audio: {link: urlAudio}
+    })
+  });
+}
+
+// Para mensagem de voz (PTT - Push To Talk)
+// Use audio com formato OGG Opus - será exibido como mensagem de voz
+async function enviarMensagemVoz(destinatario, arquivoOgg) {
+  const formData = new FormData();
+  formData.append('file', arquivoOgg); // Arquivo OGG Opus
+  formData.append('messaging_product', 'whatsapp');
+  
+  const uploadResponse = await fetch(
+    `https://graph.facebook.com/v21.0/${PHONE_NUMBER_ID}/media`,
+    {
+      method: 'POST',
+      headers: {'Authorization': `Bearer ${ACCESS_TOKEN}`},
+      body: formData
+    }
+  );
+  const {id: mediaId} = await uploadResponse.json();
+  
+  await fetch(`https://graph.facebook.com/v21.0/${PHONE_NUMBER_ID}/messages`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${ACCESS_TOKEN}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      messaging_product: "whatsapp",
+      to: destinatario,
+      type: "audio",
+      audio: {id: mediaId}
+    })
+  });
+}
+```
+
+**Observações:** Tamanho máximo: 16MB. Para exibir como "mensagem de voz" (PTT), usar OGG Opus. Outros formatos aparecem como áudio musical.
+
+---
+
+### 18. Receber áudios/mensagens de voz
+**Descrição:** Receber arquivos de áudio enviados pelos usuários.
+
+**É possível implementar via API:** Sim
+
+**Como implementar:**
+- Webhook recebe type: `audio`
+- Campo `ptt: true` indica mensagem de voz (Push-to-Talk)
+- Baixar via Media API
+
+**Exemplo prático:**
+```javascript
+if (message?.type === 'audio') {
+  const mediaId = message.audio.id;
+  const isPTT = message.audio.voice === true; // true = mensagem de voz
+  
+  const mediaResponse = await fetch(
+    `https://graph.facebook.com/v21.0/${mediaId}`,
+    {headers: {'Authorization': `Bearer ${ACCESS_TOKEN}`}}
+  );
+  const {url, mime_type} = await mediaResponse.json();
+  
+  const audioResponse = await fetch(url, {
+    headers: {'Authorization': `Bearer ${ACCESS_TOKEN}`}
+  });
+  const audioBuffer = await audioResponse.buffer();
+  
+  const tipo = isPTT ? 'voz' : 'audio';
+  fs.writeFileSync(`./uploads/${mediaId}_${tipo}.ogg`, audioBuffer);
+  
+  salvarMensagemNoBanco({
+    from: message.from,
+    type: 'audio',
+    mediaId: mediaId,
+    isVoice: isPTT,
+    localPath: `./uploads/${mediaId}_${tipo}.ogg`
+  });
+}
+```
+
+**Observações:** Mensagens de voz (PTT) vêm com campo `voice: true`. Áudios musicais não têm esse campo.
+
+---
+
+### 19. Enviar documentos (PDF, DOC, XLS, etc)
+**Descrição:** Enviar arquivos documentos de qualquer tipo.
+
+**É possível implementar via API:** Sim
+
+**Como implementar:**
+- Type: `document`
+- Suporta qualquer tipo de arquivo
+- Pode incluir nome do arquivo (filename) e legenda (caption)
+
+**Exemplo prático:**
+```javascript
+async function enviarDocumento(destinatario, urlDocumento, nomeArquivo, legenda) {
+  await fetch(`https://graph.facebook.com/v21.0/${PHONE_NUMBER_ID}/messages`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${ACCESS_TOKEN}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      messaging_product: "whatsapp",
+      to: destinatario,
+      type: "document",
+      document: {
+        link: urlDocumento,
+        filename: nomeArquivo, // Ex: "contrato.pdf"
+        caption: legenda // Opcional
+      }
+    })
+  });
+}
+
+// Com upload
+async function enviarDocumentoUpload(destinatario, arquivo, nomeArquivo) {
+  const formData = new FormData();
+  formData.append('file', arquivo);
+  formData.append('messaging_product', 'whatsapp');
+  
+  const uploadResponse = await fetch(
+    `https://graph.facebook.com/v21.0/${PHONE_NUMBER_ID}/media`,
+    {
+      method: 'POST',
+      headers: {'Authorization': `Bearer ${ACCESS_TOKEN}`},
+      body: formData
+    }
+  );
+  const {id: mediaId} = await uploadResponse.json();
+  
+  await fetch(`https://graph.facebook.com/v21.0/${PHONE_NUMBER_ID}/messages`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${ACCESS_TOKEN}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      messaging_product: "whatsapp",
+      to: destinatario,
+      type: "document",
+      document: {
+        id: mediaId,
+        filename: nomeArquivo
+      }
+    })
+  });
+}
+```
+
+**Observações:** Tamanho máximo: 100MB. Todos os tipos de arquivo são suportados (PDF, DOCX, XLSX, ZIP, etc).
+
+---
+
+### 20. Receber documentos
+**Descrição:** Receber documentos enviados pelos usuários.
+
+**É possível implementar via API:** Sim
+
+**Como implementar:**
+- Webhook recebe type: `document`
+- Inclui filename e mime_type
+- Baixar via Media API
+
+**Exemplo prático:**
+```javascript
+if (message?.type === 'document') {
+  const mediaId = message.document.id;
+  const filename = message.document.filename;
+  const caption = message.document.caption || '';
+  const mimeType = message.document.mime_type;
+  
+  const mediaResponse = await fetch(
+    `https://graph.facebook.com/v21.0/${mediaId}`,
+    {headers: {'Authorization': `Bearer ${ACCESS_TOKEN}`}}
+  );
+  const {url} = await mediaResponse.json();
+  
+  const docResponse = await fetch(url, {
+    headers: {'Authorization': `Bearer ${ACCESS_TOKEN}`}
+  });
+  const docBuffer = await docResponse.buffer();
+  
+  fs.writeFileSync(`./uploads/${filename}`, docBuffer);
+  
+  salvarMensagemNoBanco({
+    from: message.from,
+    type: 'document',
+    filename: filename,
+    mimeType: mimeType,
+    caption: caption,
+    localPath: `./uploads/${filename}`
+  });
+}
+```
+
+**Observações:** Preservar nome original do arquivo. Mime_type ajuda a identificar tipo de arquivo.
+
+---
+
+### 21. Enviar localização
+**Descrição:** Enviar localização geográfica (latitude/longitude) com nome e endereço.
+
+**É possível implementar via API:** Sim
+
+**Como implementar:**
+- Type: `location`
+- Campos: latitude, longitude, name (opcional), address (opcional)
+
+**Exemplo prático:**
+```javascript
+async function enviarLocalizacao(destinatario, lat, lng, nome, endereco) {
+  await fetch(`https://graph.facebook.com/v21.0/${PHONE_NUMBER_ID}/messages`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${ACCESS_TOKEN}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      messaging_product: "whatsapp",
+      to: destinatario,
+      type: "location",
+      location: {
+        latitude: lat,
+        longitude: lng,
+        name: nome, // Ex: "Escritório Central"
+        address: endereco // Ex: "Av. Paulista, 1000"
+      }
+    })
+  });
+}
+
+// Exemplo prático
+enviarLocalizacao(
+  "5511999999999",
+  -23.561684,
+  -46.655981,
+  "MASP",
+  "Av. Paulista, 1578 - São Paulo"
+);
+```
+
+**Observações:** WhatsApp exibe localização em mapa interativo. Name e address são opcionais mas recomendados.
+
+---
+
+### 22. Receber localização
+**Descrição:** Receber localização compartilhada pelos usuários.
+
+**É possível implementar via API:** Sim
+
+**Como implementar:**
+- Webhook recebe type: `location`
+- Payload contém latitude, longitude, name, address
+
+**Exemplo prático:**
+```javascript
+if (message?.type === 'location') {
+  const location = message.location;
+  
+  salvarMensagemNoBanco({
+    from: message.from,
+    type: 'location',
+    latitude: location.latitude,
+    longitude: location.longitude,
+    name: location.name,
+    address: location.address,
+    timestamp: new Date()
+  });
+  
+  // Exibir no mapa do site
+  exibirNoMapa(location.latitude, location.longitude);
+}
+```
+
+**Observações:** Localização em tempo real não é suportada. Apenas localizações estáticas compartilhadas.
+
+---
+
+### 23. Enviar contatos (vCard)
+**Descrição:** Compartilhar informações de contatos (nome, telefone, etc) no formato vCard.
+
+**É possível implementar via API:** Sim
+
+**Como implementar:**
+- Type: `contacts`
+- Aceita array de contatos com nome, telefones, emails, endereços
+
+**Exemplo prático:**
+```javascript
+async function enviarContato(destinatario) {
+  await fetch(`https://graph.facebook.com/v21.0/${PHONE_NUMBER_ID}/messages`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${ACCESS_TOKEN}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      messaging_product: "whatsapp",
+      to: destinatario,
+      type: "contacts",
+      contacts: [{
+        name: {
+          formatted_name: "João Silva",
+          first_name: "João",
+          last_name: "Silva"
+        },
+        phones: [{
+          phone: "+55 11 99999-9999",
+          type: "CELL",
+          wa_id: "5511999999999"
+        }],
+        emails: [{
+          email: "joao@example.com",
+          type: "WORK"
+        }],
+        org: {
+          company: "Empresa XYZ"
+        }
+      }]
+    })
+  });
+}
+```
+
+**Observações:** Usuário pode salvar contato diretamente na agenda do telefone. Suporta múltiplos contatos em uma mensagem.
+
+---
+
+### 24. Receber contatos
+**Descrição:** Receber contatos (vCard) compartilhados pelos usuários.
+
+**É possível implementar via API:** Sim
+
+**Como implementar:**
+- Webhook recebe type: `contacts`
+- Array de contatos com todos os dados estruturados
+
+**Exemplo prático:**
+```javascript
+if (message?.type === 'contacts') {
+  const contacts = message.contacts;
+  
+  contacts.forEach(contact => {
+    const nome = contact.name.formatted_name;
+    const telefones = contact.phones?.map(p => p.phone) || [];
+    const emails = contact.emails?.map(e => e.email) || [];
+    
+    salvarMensagemNoBanco({
+      from: message.from,
+      type: 'contacts',
+      contactName: nome,
+      phones: telefones,
+      emails: emails,
+      timestamp: new Date()
+    });
+  });
+}
+```
+
+**Observações:** Formato estruturado facilita integração com CRM. Todos os campos do vCard são suportados.
+
+---
+
+CONTINUE NO BLOCO4

@@ -1,0 +1,120 @@
+## BLOCO 6: CHAMADAS E VIDEOCHAMADAS
+
+### 38. Fazer chamadas de voz
+**Descrição:** Iniciar chamadas de voz para contatos via WhatsApp.
+
+**É possível implementar via API:** Não
+
+**Como implementar:**
+- API não suporta chamadas de voz
+- Alternativa: Integrar com serviços VoIP terceiros (Twilio, Vonage)
+- Ou enviar mensagem solicitando que usuário ligue
+
+**Exemplo prático:**
+```javascript
+// Não disponível diretamente na API
+// Alternativa 1: Enviar mensagem com botão de telefone
+async function solicitarLigacao(destinatario, numeroTelefone) {
+  await enviarMensagem(
+    destinatario,
+    `Para falar conosco, ligue: ${numeroTelefone}\n\nOu clique no botão abaixo:`
+  );
+  
+  // Ou usar template com botão PHONE_NUMBER
+}
+
+// Alternativa 2: Integração com serviço VoIP
+// Usar Twilio Voice API separadamente
+const twilio = require('twilio');
+const client = twilio(accountSid, authToken);
+
+async function iniciarChamadaVoIP(destinatario) {
+  const call = await client.calls.create({
+    url: 'http://demo.twilio.com/docs/voice.xml',
+    to: destinatario,
+    from: seuNumeroTwilio
+  });
+  
+  return call.sid;
+}
+```
+
+**Observações:** WhatsApp API não oferece funcionalidade de chamadas. Use serviços VoIP separados ou apenas mensagens.
+
+---
+
+### 39. Receber chamadas de voz
+**Descrição:** Receber notificações quando usuário tenta ligar.
+
+**É possível implementar via API:** Não
+
+**Como implementar:**
+- API não notifica sobre chamadas recebidas
+- Não há webhook para eventos de chamada
+- Impossível saber se usuário tentou ligar via WhatsApp
+
+**Exemplo prático:**
+```javascript
+// Não disponível
+// API não recebe notificações de chamadas
+```
+
+**Observações:** Funcionalidade exclusiva do aplicativo WhatsApp. API não tem acesso a chamadas.
+
+---
+
+### 40. Fazer videochamadas
+**Descrição:** Iniciar videochamadas com contatos.
+
+**É possível implementar via API:** Não
+
+**Como implementar:**
+- API não suporta videochamadas
+- Alternativa: Enviar link para videochamada em plataforma terceira (Zoom, Google Meet, Jitsi)
+
+**Exemplo prático:**
+```javascript
+// Não disponível na API
+// Alternativa: Enviar link de videochamada
+async function enviarLinkVideochamada(destinatario) {
+  const linkMeet = gerarLinkGoogleMeet(); // Ou Zoom, Jitsi, etc
+  
+  await enviarMensagem(
+    destinatario,
+    `📹 Videochamada agendada!\n\nClique no link para entrar:\n${linkMeet}\n\nData: ${dataHora}`
+  );
+  
+  // Ou usar botão CTA em template
+  await enviarTemplateComBotaoURL(destinatario, linkMeet);
+}
+
+function gerarLinkGoogleMeet() {
+  // Integração com Google Calendar API
+  // Ou usar Jitsi (código aberto)
+  return `https://meet.jit.si/${gerarCodigoUnico()}`;
+}
+```
+
+**Observações:** WhatsApp API não oferece videochamadas. Integre com plataformas de videoconferência.
+
+---
+
+### 41. Receber videochamadas
+**Descrição:** Receber notificações de videochamadas iniciadas por usuários.
+
+**É possível implementar via API:** Não
+
+**Como implementar:**
+- Não disponível na API
+- Sem webhooks para eventos de videochamada
+
+**Exemplo prático:**
+```javascript
+// Não disponível
+// API não tem acesso a funcionalidade de chamadas
+```
+
+**Observações:** Recurso exclusivo dos aplicativos WhatsApp (mobile/desktop).
+
+
+CONTINUE NO BLOCO7

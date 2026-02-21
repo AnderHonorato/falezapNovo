@@ -1,0 +1,332 @@
+## BLOCO 8: AUTOMAÇÃO E MENSAGENS AUTOMÁTICAS
+
+### 47. Mensagem de saudação (Greeting Message)
+**Descrição:** Mensagem automática enviada quando usuário inicia conversa pela primeira vez.
+
+**É possível implementar via API:** Não (diretamente), Sim (via lógica)
+
+**Como implementar:**
+- API não tem configuração nativa de "greeting message"
+- Implementar lógica: detectar primeira mensagem do usuário e responder automaticamente
+- Usar webhook + banco de dados para rastrear novos contatos
+
+**Exemplo prático:**
+```javascript
+// Detectar primeira interação
+app.post('/webhook', async (req, res) => {
+  const message = req.body.entry?.[0]?.changes?.[0]?.value?.messages?.[0];
+  
+  if (message) {
+    const from = message.from;
+    
+    // Verificar se é primeira interação
+    const conversaExistente = await db.conversas.findOne({numero: from});
+    
+    if (!conversaExistente) {
+      // Enviar mensagem de saudação
+      await enviarMensagem(
+        from,
+        `👋 Olá! Bem-vindo à ${NOME_EMPRESA}!\n\nComo podemos ajudar você hoje?`
+      );
+      
+      // Registrar contato
+      await db.conversas.insert({
+        numero: from,
+        primeiraInteracao: new Date(),
+        status: 'novo'
+      });
+    }
+  }
+  
+  res.sendStatus(200);
+});
+```
+
+**Observações:** Implementar lógica própria. API não oferece configuração nativa de greeting message como no app Business.
+
+---
+
+### 48. Mensagem de ausência (Away Message)
+**Descrição:** Resposta automática quando empresa está offline ou fora do horário comercial.
+
+**É possível implementar via API:** Não (diretamente), Sim (via lógica)
+
+**Como implementar:**
+- Implementar verificação de horário comercial
+- Responder automaticamente quando fora do horário
+- Usar configurações de status (disponível/ausente)
+
+**Exemplo prático:**
+```javascript
+// Configurar horário comercial
+const horarioComercial = {
+  segunda: {inicio: '09:00', fim: '18:00'},
+  terca: {inicio: '09:00', fim: '18:00'},
+  quarta: {inicio: '09:00', fim: '18:00'},
+  quinta: {inicio: '09:00', fim: '18:00'},
+  sexta: {inicio: '09:00', fim: '18:00'},
+  sabado: {inicio: '09:00', fim: '13:00'},
+  domingo: null // Fechado
+};
+
+function estaEmHorarioComercial() {
+  const agora = new Date();
+  const diaSemana = ['domingo', 'segunda', 'terca', 'quarta', 'quinta', 'sexta', 'sabado'][agora.getDay()];
+  const horario = horarioComercial[diaSemana];
+  
+  if (!horario) return false;
+  
+  const horaAtual = agora.getHours() * 60 + agora.getMinutes();
+  const [inicioH, inicioM] = horario.inicio.split(':').map(Number);
+  const [fimH, fimM] = horario.fim.split(':').map(Number);
+  const inicio = inicioH * 60 + inicioM;
+  const fim = fimH * 60 + fimM;
+  
+  return horaAtual >= inicio && horaAtual <= fim;
+}
+
+// Webhook com verificação de horário
+app.post('/webhook', async (req, res) => {
+  const message = req.body.entry?.[0]?.changes?.[0]?.value?.messages?.[0];
+  
+  if (message) {
+    const from = message.from;
+    
+    // Verificar se já enviou mensagem de ausência recentemente
+    const ultimaMsgAusencia = await db.mensagensAutomaticas.findOne({
+      numero: from,
+      tipo: 'ausencia',
+      timestamp: {$gt: new Date(Date.now() - 3600000)} // Última 1h
+    });
+    
+    if (!estaEmHorarioComercial() && !ultimaMsgAusencia) {
+      await enviarMensagem(
+        from,
+        `🕐 No momento estamos fora do horário de atendimento.\n\n` +
+        `⏰ Horário: Segunda a Sexta, 9h às 18h | Sábado, 9h às 13h\n\n` +
+        `Responderemos sua mensagem assim que possível!`
+      );
+      
+      // Registrar envio
+      await db.mensagensAutomaticas.insert({
+        numero: from,
+        tipo: 'ausencia',
+        timestamp: new Date()
+      });
+    }
+  }
+  
+  res.sendStatus(200);
+});
+```
+
+**Observações:** Evitar enviar mensagem de ausência múltiplas vezes. Implementar cooldown de pelo menos 1 hora.
+
+---
+
+### 49. Respostas rápidas salvas (Quick Replies/Saved Messages)
+**Descrição:** Mensagens pré-definidas que atendentes podem usar rapidamente.
+
+**É possível implementar via API:** Não (diretamente), Sim (no site)
+
+**Como implementar:**
+- API não tem funcionalidade de "quick replies" salvos
+- Implementar biblioteca de respostas rápidas no frontend do site
+- Permitir que atendentes selecionem e enviem com um clique
+
+**Exemplo prático:**
+```javascript
+// Banco de respostas rápidas
+const respostasRapidas = [
+  {
+    id: 'rr_1',
+    atalho: '/horario',
+    titulo: 'Horário de Atendimento',
+    mensagem: '⏰ Nosso horário:\nSegunda a Sexta: 9h às 18h\nSábado: 9h às 13h\nDomingo: Fechado'
+  },
+  {
+    id: 'rr_2',
+    atalho: '/entrega',
+    titulo: 'Informações de Entrega',
+    mensagem: '📦 Prazo de entrega:\n- Capital: 2-3 dias úteis\n- Interior: 5-7 dias úteis\n- Frete grátis acima de R$ 150'
+  },
+  {
+    id: 'rr_3',
+    atalho: '/pagamento',
+    titulo: 'Formas de Pagamento',
+    mensagem: '💳 Aceitamos:\n- Cartão (crédito/débito)\n- PIX\n- Boleto\n- Parcelamento em até 12x'
+  }
+];
+
+// Interface no site
+function renderizarRespostasRapidas() {
+  const container = document.getElementById('respostas-rapidas');
+  
+  respostasRapidas.forEach(rr => {
+    const botao = document.createElement('button');
+    botao.textContent = rr.titulo;
+    botao.onclick = () => enviarRespostaRapida(rr.mensagem);
+    container.appendChild(botao);
+  });
+}
+
+async function enviarRespostaRapida(mensagem) {
+  const destinatario = conversaAtual.numero;
+  await enviarMensagem(destinatario, mensagem);
+  
+  // Adicionar à interface de chat
+  adicionarMensagemNoChat('enviada', mensagem);
+}
+
+// Suporte a atalhos (digitando /horario)
+function processarAtalho(texto) {
+  const respostaRapida = respostasRapidas.find(rr => rr.atalho === texto);
+  if (respostaRapida) {
+    return respostaRapida.mensagem;
+  }
+  return texto;
+}
+```
+
+**Observações:** Funcionalidade exclusiva do site. Criar interface amigável para gerenciar respostas rápidas.
+
+---
+
+### 50. Chatbot e fluxos automatizados
+**Descrição:** Automatizar conversas com lógica de perguntas/respostas baseadas em palavras-chave ou IA.
+
+**É possível implementar via API:** Sim
+
+**Como implementar:**
+- Processar mensagens recebidas via webhook
+- Implementar lógica de resposta automática
+- Usar NLP ou regras baseadas em palavras-chave
+- Integrar com IA (OpenAI, Dialogflow, IBM Watson)
+
+**Exemplo prático:**
+```javascript
+// Chatbot simples baseado em palavras-chave
+const fluxoChatbot = {
+  'ola|oi|olá': {
+    resposta: '👋 Olá! Como posso ajudar?\n\n1️⃣ Ver produtos\n2️⃣ Rastrear pedido\n3️⃣ Falar com atendente',
+    proximoEstado: 'menu_principal'
+  },
+  'produtos|catalogo|ver produtos': {
+    resposta: '🛍️ Temos estas categorias:\n\n📱 Eletrônicos\n👗 Moda\n🏠 Casa\n\nQual te interessa?',
+    proximoEstado: 'escolher_categoria'
+  },
+  'rastrear|rastreamento|pedido': {
+    resposta: '📦 Por favor, digite o número do seu pedido:',
+    proximoEstado: 'aguardando_numero_pedido'
+  },
+  'atendente|humano|pessoa': {
+    resposta: '👤 Transferindo para atendente humano...',
+    acao: 'transferir_atendente'
+  }
+};
+
+// Processador do webhook com chatbot
+app.post('/webhook', async (req, res) => {
+  const message = req.body.entry?.[0]?.changes?.[0]?.value?.messages?.[0];
+  
+  if (message?.type === 'text') {
+    const from = message.from;
+    const textoUsuario = message.text.body.toLowerCase();
+    
+    // Buscar estado atual da conversa
+    const conversa = await db.conversas.findOne({numero: from});
+    const estadoAtual = conversa?.estadoChatbot || 'inicial';
+    
+    // Processar com chatbot
+    let resposta = null;
+    
+    // Verificar fluxo baseado em palavras-chave
+    for (const [keywords, config] of Object.entries(fluxoChatbot)) {
+      const regex = new RegExp(keywords, 'i');
+      if (regex.test(textoUsuario)) {
+        resposta = config.resposta;
+        
+        // Atualizar estado
+        await db.conversas.update(
+          {numero: from},
+          {$set: {estadoChatbot: config.proximoEstado || 'inicial'}}
+        );
+        
+        // Ação especial
+        if (config.acao === 'transferir_atendente') {
+          await notificarAtendente(from);
+        }
+        
+        break;
+      }
+    }
+    
+    // Lógica baseada em estado
+    if (!resposta && estadoAtual === 'aguardando_numero_pedido') {
+      const numeroPedido = textoUsuario.replace(/\D/g, '');
+      const pedido = await buscarPedido(numeroPedido);
+      
+      if (pedido) {
+        resposta = `✅ Pedido #${numeroPedido}\n\n` +
+                   `Status: ${pedido.status}\n` +
+                   `Previsão: ${pedido.previsaoEntrega}`;
+      } else {
+        resposta = '❌ Pedido não encontrado. Verifique o número e tente novamente.';
+      }
+      
+      await db.conversas.update(
+        {numero: from},
+        {$set: {estadoChatbot: 'inicial'}}
+      );
+    }
+    
+    // Resposta padrão
+    if (!resposta) {
+      resposta = '🤔 Desculpe, não entendi. Digite "menu" para ver as opções.';
+    }
+    
+    // Enviar resposta
+    await enviarMensagem(from, resposta);
+  }
+  
+  res.sendStatus(200);
+});
+
+// Chatbot com IA (OpenAI)
+async function processarComIA(from, mensagemUsuario) {
+  const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${OPENAI_API_KEY}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      model: 'gpt-4',
+      messages: [
+        {
+          role: 'system',
+          content: 'Você é um assistente de atendimento ao cliente de uma loja online. Seja prestativo e cordial.'
+        },
+        {
+          role: 'user',
+          content: mensagemUsuario
+        }
+      ]
+    })
+  });
+  
+  const data = await response.json();
+  const respostaIA = data.choices[0].message.content;
+  
+  await enviarMensagem(from, respostaIA);
+}
+```
+
+**Observações:** 
+- Chatbots simples: usar palavras-chave e estados
+- Chatbots avançados: integrar com IA (OpenAI, Dialogflow)
+- Sempre oferecer opção de falar com humano
+- Cuidado com custos de API de IA
+
+
+CONTINUE NO BLOCO9

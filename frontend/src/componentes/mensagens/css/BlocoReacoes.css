@@ -1,0 +1,187 @@
+/* frontend/src/componentes/mensagens/css/BlocoReacoes.css */
+
+.bloco-reacoes-container {
+  position: absolute;
+  left: 8px; /* 8px (do .left-2) */
+  bottom: -12px; /* -12px (do -bottom-3) */
+  display: flex;
+  align-items: center;
+  gap: 6px; /* 6px (do .gap-1.5) */
+  flex-wrap: wrap;
+  z-index: 10;
+  animation: reacaoSlideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes reacaoSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.reacao-grupo-wrapper {
+  position: relative;
+}
+
+.reacao-grupo {
+  display: flex;
+  align-items: center;
+  gap: 6px; /* .gap-1.5 */
+  padding: 6px 10px; /* .px-2.5 .py-1.5 */
+  border-radius: 9999px; /* .rounded-full */
+  font-size: 12px; /* .text-xs */
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1); /* .shadow-lg */
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  border-width: 2px;
+  border-style: solid;
+  cursor: pointer;
+  transform: translateY(0);
+  
+  /* Estilo Glassmorphism (sutil) */
+  background: linear-gradient(135deg, rgba(30, 41, 59, 0.7) 0%, rgba(15, 23, 42, 0.8) 100%);
+  backdrop-filter: blur(8px);
+}
+
+.light-theme .reacao-grupo {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.7) 0%, rgba(248, 250, 252, 0.8) 100%);
+}
+
+.reacao-grupo:hover {
+  transform: translateY(-2px) scale(1.05);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1); /* .shadow-xl */
+}
+
+.reacao-grupo:active {
+  transform: scale(0.95) translateY(0);
+}
+
+/* Estado "Eu Reagi" */
+.reacao-grupo.eu-reagi {
+  position: relative;
+  overflow: hidden;
+}
+
+/* Efeito de brilho do .anotacao-item */
+.reacao-grupo.eu-reagi::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, transparent 0%, currentColor 100%);
+  opacity: 0.1; /* Sutil */
+  pointer-events: none;
+}
+
+.reacao-emoji {
+  font-size: 16px; /* .text-base */
+  line-height: 1;
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.reacao-grupo:hover .reacao-emoji {
+  animation: emojiBounce 0.4s ease-in-out;
+}
+
+@keyframes emojiBounce {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.2); }
+}
+
+.reacao-contador {
+  font-weight: 700; /* .font-bold */
+  font-size: 10px; /* .text-[10px] */
+  line-height: 1;
+}
+
+.reacao-multi-user {
+  width: 12px; /* .w-3 */
+  height: 12px; /* .h-3 */
+  opacity: 0.5;
+}
+
+/* Tooltip (baseado no PainelAnotacoes) */
+.reacao-tooltip {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-bottom: 8px; /* .mb-2 */
+  padding: 8px 12px; /* .px-3 .py-2 */
+  border-radius: 16px; /* .rounded-xl */
+  
+  /* Estilo Glassmorphism */
+  background: linear-gradient(135deg, rgba(30, 41, 59, 0.9) 0%, rgba(15, 23, 42, 0.95) 100%);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
+  
+  white-space: nowrap;
+  max-width: 200px; /* .max-w-xs */
+  z-index: 20;
+  pointer-events: none;
+  animation: reacaoFadeIn 0.2s ease-out;
+}
+
+.light-theme .reacao-tooltip {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(248, 250, 252, 0.95) 100%);
+  border-color: rgba(226, 232, 240, 0.8);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.15);
+}
+
+@keyframes reacaoFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.tooltip-header {
+  font-size: 12px; /* .text-xs */
+  font-weight: 600; /* .font-semibold */
+  margin-bottom: 4px; /* .mb-1 */
+}
+
+.tooltip-lista-usuarios {
+  font-size: 10px; /* .text-[10px] */
+  font-weight: 500; /* .font-medium */
+}
+
+.tooltip-usuario {
+  display: flex;
+  align-items: center;
+  gap: 4px; /* .gap-1 */
+}
+
+.tooltip-usuario-dot {
+  width: 6px; /* .w-1.5 */
+  height: 6px; /* .h-1.5 */
+  border-radius: 9999px; /* .rounded-full */
+}
+
+.tooltip-mais-usuarios {
+  display: flex;
+  align-items: center;
+  gap: 4px; /* .gap-1 */
+  font-weight: 700; /* .font-bold */
+}
+
+.tooltip-mais-usuarios-icon {
+  width: 12px; /* .w-3 */
+  height: 12px; /* .h-3 */
+}
+
+/* Seta do Tooltip */
+.tooltip-seta {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-top: -1px; /* .-mt-px */
+  width: 0;
+  height: 0;
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-top-width: 6px;
+  border-top-style: solid;
+}

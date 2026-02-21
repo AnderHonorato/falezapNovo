@@ -1,0 +1,614 @@
+// backend/src/controladores/conversas_controlador.js (CORRIGIDO)
+
+const { PrismaClient } = require('@prisma/client');
+const prisma = new PrismaClient();
+
+class ConversasControlador {
+
+  // ===================================================
+  // ✅ SEU CÓDIGO EXISTENTE (COM A CORREÇÃO DO PRISMA)
+  // ===================================================
+
+  // ===== OBTER CONVERSAS =====
+  async obterConversas(req, res) {
+    try {
+      const { contaId } = req.usuario;
+      const { filtro = 'TODAS', pesquisa = '' } = req.query;
+
+      console.log(`\n💬 [CONVERSAS] Obtendo conversas:`);
+      console.log(`   - contaId: ${contaId}`);
+      console.log(`   - filtro: ${filtro}`);
+      console.log(`   - pesquisa: ${pesquisa}`);
+
+      // Construir filtro de pesquisa
+      const wherePesquisa = pesquisa ? {
+        OR: [
+          { nomeCliente: { contains: pesquisa, mode: 'insensitive' } },
+          { numeroCliente: { contains: pesquisa } }
+        ]
+      } : {};
+
+      // Construir filtro de status
+      let whereStatus = {};
+      switch(filtro) {
+        case 'NAO_LIDAS':
+          whereStatus = {
+            // Ajuste: verificar se naoLidas > 0 em vez de consultar mensagens aqui
+            naoLidas: { gt: 0 }
+          };
+          break;
+        case 'FAVORITAS':
+          whereStatus = { favorita: true };
+          break;
+        case 'GRUPOS':
+          whereStatus = { isGrupo: true };
+          break;
+        case 'ARQUIVADA':
+          whereStatus = { statusConversa: 'ARQUIVADA' };
+          break;
+        default: // 'TODAS' ou filtro desconhecido
+          whereStatus = { statusConversa: { not: 'ARQUIVADA' } };
+      }
+
+      const conversas = await prisma.conversa.findMany({
+        where: {
+          contaId: contaId,
+          ...wherePesquisa,
+          ...whereStatus
+        },
+        include: {
+          mensagens: {
+            orderBy: { enviadaEm: 'desc' },
+            take: 1,
+            select: {
+              id: true,
+              conteudo: true,
+              tipo: true,
+              direcao: true,
+              statusMensagem: true,
+              lida: true,
+              enviadaEm: true
+            }
+          },
+          conexaoWhatsApp: {
+            select: {
+              numeroWhatsApp: true,
+              nomeInstancia: true,
+              // ✅ CORRIGIDO: Campo 'fotoPerfil' removido
+              corIdentificacao: true
+            }
+          }
+        },
+        orderBy: [{ fixada: 'desc' }, { ultimaMensagemEm: 'desc' }] // Priorizar fixadas
+      });
+
+      console.log(`   ✅ ${conversas.length} conversas encontradas`);
+
+      // Formatar conversas (mantido igual)
+      const conversasFormatadas = await Promise.all(conversas.map(async (conv) => {
+        const ultimaMsg = conv.mensagens[0];
+
+        // Usar o campo naoLidas diretamente da conversa, se disponível e atualizado
+        // Se não, contar (pode ser menos performático para muitas conversas)
+        const naoLidas = conv.naoLidas ?? await prisma.mensagem.count({
+          where: {
+            conversaId: conv.id,
+            lida: false,
+            direcao: 'RECEBIDA'
+          }
+        });
+
+        return {
+          id: conv.id,
+          numeroCliente: conv.numeroCliente,
+          nomeCliente: conv.nomeCliente || conv.numeroCliente,
+          fotoPerfil: conv.foto_perfil || conv.fotoUrl || null, // Usar campos corretos do schema
+          fotoUrl: conv.foto_perfil || conv.fotoUrl || null,
+          isGrupo: conv.isGrupo || false,
+          is_grupo: conv.isGrupo || false,
+          nomeGrupo: conv.nomeGrupo,
+          statusConversa: conv.statusConversa,
+          fixada: conv.fixada || false,
+          pinned: conv.fixada || false,
+          favorita: conv.favorita || false,
+          favorite: conv.favorita || false,
+          silenciada: conv.silenciada || false,
+          muted: conv.silenciada || false,
+          naoLidas: naoLidas,
+          nao_lidas: naoLidas,
+          dataUltimaMensagem: conv.ultimaMensagemEm,
+          ultimaMensagemEm: conv.ultimaMensagemEm,
+          mensagemPreview: ultimaMsg?.conteudo || '',
+          ultimaMensagem: ultimaMsg?.conteudo || '',
+          tipoPreview: ultimaMsg?.tipo || 'TEXTO',
+          ultimaMensagemDirecao: ultimaMsg?.direcao,
+          ultimaMensagemStatus: ultimaMsg?.statusMensagem,
+          updatedAt: conv.ultimaMensagemEm || conv.atualizadaEm, // Usar atualizadaEm como fallback
+          conexaoWhatsApp: conv.conexaoWhatsApp ? {
+            numero: conv.conexaoWhatsApp.numeroWhatsApp,
+            nome: conv.conexaoWhatsApp.nomeInstancia,
+            cor: conv.conexaoWhatsApp.corIdentificacao
+          } : null
+        };
+      }));
+
+      res.json({
+        sucesso: true,
+        conversas: conversasFormatadas,
+        total: conversasFormatadas.length
+      });
+    } catch (erro) {
+      console.error('❌ Erro ao obter conversas:', erro);
+      // Enviar erro mais detalhado no desenvolvimento
+      const errorDetails = process.env.NODE_ENV === 'development' ? erro.message : 'Erro interno ao buscar conversas.';
+      res.status(500).json({ sucesso: false, erro: errorDetails });
+    }
+  }
+
+
+  // ===== AÇÕES EM CONVERSAS =====
+  async acaoConversa(req, res) {
+    try {
+      const { conversaId } = req.params;
+      const { acao } = req.body; // Ex: 'arquivar', 'fixar', 'favoritar', 'silenciar', 'marcar_nao_lida', 'limpar'
+      const { contaId } = req.usuario;
+
+      console.log(`\n⚡ [CONVERSAS] Ação em conversa:`);
+      console.log(`   - conversaId: ${conversaId}`);
+      console.log(`   - acao: ${acao}`);
+
+      const conversa = await prisma.conversa.findFirst({
+        where: {
+          id: conversaId, // IDs geralmente são strings (UUID/CUID) no Prisma
+          contaId: contaId
+        }
+      });
+
+      if (!conversa) {
+        return res.status(404).json({ sucesso: false, erro: 'Conversa não encontrada' });
+      }
+
+      let updateData = {};
+      let resultadoMsg = '';
+
+      switch (acao) {
+        case 'marcar_nao_lida':
+          // Aumentar contador e marcar última mensagem como não lida (se existir)
+          updateData = { naoLidas: { increment: 1 } };
+          resultadoMsg = 'Conversa marcada como não lida';
+          // Opcional: Marcar a ÚLTIMA mensagem como não lida no banco (pode ser complexo)
+          // await prisma.mensagem.updateMany({ where: { conversaId: conversaId, direcao: 'RECEBIDA' }, data: { lida: false } }); // Cuidado: marca TODAS
+          break;
+
+        case 'fixar':
+          updateData = { fixada: !conversa.fixada };
+          resultadoMsg = conversa.fixada ? 'Conversa desfixada' : 'Conversa fixada';
+          break;
+
+        case 'favoritar':
+          updateData = { favorita: !conversa.favorita };
+          resultadoMsg = conversa.favorita ? 'Removida dos favoritos' : 'Adicionada aos favoritos';
+          break;
+
+        case 'silenciar':
+          // Precisaria de lógica para 'duração' se aplicável (8h, 1 semana, sempre)
+          updateData = { silenciada: !conversa.silenciada };
+          // updateData.silenciadaAte = !conversa.silenciada ? null : undefined; // Exemplo para 'sempre'
+          resultadoMsg = conversa.silenciada ? 'Notificações ativadas' : 'Notificações silenciadas';
+          break;
+
+        case 'arquivar':
+          updateData = {
+            statusConversa: conversa.statusConversa === 'ARQUIVADA' ? 'CAIXA_ENTRADA' : 'ARQUIVADA',
+            arquivada: conversa.statusConversa !== 'ARQUIVADA', // Atualiza flag 'arquivada'
+            dataArquivamento: conversa.statusConversa !== 'ARQUIVADA' ? new Date() : null
+          };
+          resultadoMsg = conversa.statusConversa === 'ARQUIVADA' ? 'Conversa desarquivada' : 'Conversa arquivada';
+          break;
+
+        case 'limpar':
+          await prisma.mensagem.deleteMany({ where: { conversaId: conversaId } });
+          updateData = { ultimaMensagem: null, ultimaMensagemEm: new Date() }; // Limpar preview
+          resultadoMsg = 'Mensagens limpas com sucesso';
+          break;
+
+        // case 'abrir_janela': // Ação de frontend, não faz sentido no backend
+        //   resultado = { mensagem: 'Abrir em nova janela', url: `/mensagens/${conversa.numeroCliente}` };
+        //   break;
+
+        default:
+          return res.status(400).json({ sucesso: false, erro: 'Ação inválida' });
+      }
+
+      // Aplicar atualização se houver dados
+      if (Object.keys(updateData).length > 0) {
+        await prisma.conversa.update({
+          where: { id: conversaId },
+          data: updateData
+        });
+      }
+
+      console.log(`   ✅ Ação executada: ${resultadoMsg}`);
+      res.json({ sucesso: true, mensagem: resultadoMsg });
+
+    } catch (erro) {
+      console.error('❌ Erro ao executar ação:', erro);
+      res.status(500).json({ sucesso: false, erro: 'Erro ao processar ação na conversa' });
+    }
+  }
+
+
+  // ===== OBTER PERFIL DO CONTATO =====
+  async obterPerfilContato(req, res) {
+    try {
+      const { numero } = req.params;
+      const { contaId } = req.usuario;
+
+      console.log(`\n👤 [CONVERSAS] Obter perfil:`);
+      console.log(`   - numero: ${numero}`);
+      const numeroLimpo = numero.replace(/\D/g, ''); // Garante que só números sejam usados
+
+      const conversa = await prisma.conversa.findFirst({
+        where: {
+          // Buscar pelo número exato ou contendo o número limpo
+          OR: [
+            { numeroCliente: numero },
+            { numeroCliente: { contains: numeroLimpo } }
+          ],
+          contaId: contaId
+        },
+        // Não precisa incluir mensagens aqui, podemos contar separadamente
+      });
+
+      if (!conversa) {
+        // Tentar buscar contato no ContatoWhatsApp se não achar na conversa
+        const contato = await prisma.contatoWhatsApp.findFirst({
+           where: { numero: { contains: numeroLimpo }, instancia: { contaId: contaId } }
+        });
+        if(contato) {
+          return res.json({
+            sucesso: true,
+            nomeCliente: contato.nome || contato.pushname,
+            numeroCliente: contato.numero,
+            fotoPerfil: contato.fotoPerfil,
+            email: null, // ContatoWhatsApp não tem email
+            observacoes: null, // ContatoWhatsApp não tem observações
+            totalMensagens: 0, // Não sabemos o total de mensagens só pelo contato
+            criadoEm: contato.criadoEm,
+            ultimaMensagemEm: contato.ultimaMensagemEm
+          });
+        }
+        return res.status(404).json({ sucesso: false, erro: 'Contato ou conversa não encontrado' });
+      }
+
+      // Contar mensagens separadamente
+      const totalMensagens = await prisma.mensagem.count({
+        where: { conversaId: conversa.id }
+      });
+
+      res.json({
+        sucesso: true,
+        nomeCliente: conversa.nomeCliente,
+        numeroCliente: conversa.numeroCliente,
+        fotoPerfil: conversa.foto_perfil || conversa.fotoUrl, // Usar campos do schema
+        email: null, // Modelo Conversa não tem email no schema
+        observacoes: null, // Modelo Conversa não tem observacoes no schema
+        totalMensagens: totalMensagens,
+        criadoEm: conversa.criadaEm, // Usar criadaEm
+        ultimaMensagemEm: conversa.ultimaMensagemEm
+      });
+    } catch (erro) {
+      console.error('❌ Erro ao obter perfil:', erro);
+      res.status(500).json({ sucesso: false, erro: 'Erro ao buscar informações do contato' });
+    }
+  }
+
+
+  // ===== ATUALIZAR PERFIL DO CONTATO =====
+  async atualizarPerfilContato(req, res) {
+    try {
+      const { numero } = req.params;
+      // O schema de Conversa não tem email nem observações
+      // Apenas nomeCliente (que é nomeContato no schema) pode ser atualizado aqui
+      const { nomeCliente } = req.body;
+      const { contaId } = req.usuario;
+      const numeroLimpo = numero.replace(/\D/g, '');
+
+      console.log(`\n✏️ [CONVERSAS] Atualizar perfil:`);
+      console.log(`   - numero: ${numero}`);
+
+      if (!nomeCliente) {
+         return res.status(400).json({ sucesso: false, erro: 'Nome do cliente é obrigatório para atualização.' });
+      }
+
+      // Atualizar todas as conversas que correspondem ao número e conta
+      const resultado = await prisma.conversa.updateMany({
+        where: {
+          OR: [
+            { numeroCliente: numero },
+            { numeroCliente: { contains: numeroLimpo } }
+          ],
+          contaId: contaId
+        },
+        data: {
+          // O campo no schema é nomeContato
+          nomeContato: nomeCliente,
+          // Não há campos email ou observacoes no schema Conversa
+        }
+      });
+
+      if (resultado.count === 0) {
+        // Tentar atualizar ContatoWhatsApp se não houver conversa
+         const contatoUpdate = await prisma.contatoWhatsApp.updateMany({
+           where: { numero: { contains: numeroLimpo }, instancia: { contaId: contaId } },
+           data: { nome: nomeCliente } // Ou 'pushname' dependendo da sua lógica
+         });
+         if (contatoUpdate.count > 0) {
+            console.log(`   ✅ Perfil do ContatoWhatsApp atualizado`);
+            return res.json({ sucesso: true, mensagem: 'Nome do contato atualizado com sucesso' });
+         }
+        return res.status(404).json({ sucesso: false, erro: 'Contato ou conversa não encontrado para atualizar' });
+      }
+
+      console.log(`   ✅ Perfil(s) de conversa atualizado(s): ${resultado.count}`);
+      res.json({ sucesso: true, mensagem: 'Nome do contato atualizado com sucesso' });
+
+    } catch (erro) {
+      console.error('❌ Erro ao atualizar perfil:', erro);
+      res.status(500).json({ sucesso: false, erro: 'Erro ao atualizar informações do contato' });
+    }
+  }
+
+
+  // ===== MARCAR CONVERSA COMO LIDA =====
+  async marcarComoLida(req, res) {
+    try {
+      const { conversaId } = req.params;
+      const { contaId } = req.usuario; // Certifique-se que o middleware adiciona req.usuario
+
+      console.log(`\n✅ [CONVERSAS] Marcar como lida:`);
+      console.log(`   - conversaId: ${conversaId}`);
+
+      if (!contaId) {
+         return res.status(401).json({ sucesso: false, erro: 'Usuário não autenticado' });
+      }
+
+      // Transação para garantir atomicidade
+      const [, updateMsgResult] = await prisma.$transaction([
+        // 1. Zera o contador na conversa
+        prisma.conversa.update({
+          where: { id: conversaId, contaId: contaId }, // Garante que a conversa pertence à conta
+          data: { naoLidas: 0 }
+        }),
+        // 2. Marca as mensagens como lidas
+        prisma.mensagem.updateMany({
+          where: {
+            conversaId: conversaId,
+            direcao: 'RECEBIDA', // Corrigido de 'RECEBIDO' para 'RECEBIDA' se for Enum
+            lida: false
+          },
+          data: {
+            lida: true,
+            // lidaEm: new Date(), // Campo lidaEm não existe no schema Mensagem
+            statusMensagem: 'LIDA' // Atualiza status se necessário
+          }
+        })
+      ]);
+
+      console.log(`   ✅ ${updateMsgResult.count} mensagens marcadas como lidas`);
+      res.json({ sucesso: true, mensagem: 'Conversa marcada como lida' });
+
+    } catch (erro) {
+      console.error('❌ Erro ao marcar como lida:', erro);
+       if (erro.code === 'P2025') { // Código de erro do Prisma para registro não encontrado
+         return res.status(404).json({ sucesso: false, erro: 'Conversa não encontrada ou não pertence à sua conta.' });
+       }
+      res.status(500).json({ sucesso: false, erro: 'Erro interno ao marcar conversa como lida' });
+    }
+  }
+
+
+  // ===== OBTER DETALHES DE UMA CONVERSA =====
+  async obterDetalhesConversa(req, res) {
+    try {
+      const { conversaId } = req.params;
+      const { contaId } = req.usuario;
+
+       if (!contaId) {
+         return res.status(401).json({ sucesso: false, erro: 'Usuário não autenticado' });
+       }
+
+      const conversa = await prisma.conversa.findFirst({
+        where: {
+          id: conversaId,
+          contaId: contaId
+        },
+        include: {
+          conexaoWhatsApp: true,
+          etiquetas: { // Incluir etiquetas associadas
+             include: {
+                etiqueta: true
+             }
+          },
+          usuarioResponsavel: { // Incluir usuário responsável
+             select: { id: true, nome: true, avatar: true }
+          }
+          // Incluir outras relações se necessário (anotações, etc.)
+        }
+      });
+
+      if (!conversa) {
+        return res.status(404).json({ sucesso: false, erro: 'Conversa não encontrada ou não pertence à sua conta' });
+      }
+
+      // Mapear etiquetas para um formato mais simples, se desejado
+      const conversaComEtiquetasFormatadas = {
+          ...conversa,
+          etiquetas: conversa.etiquetas.map(ce => ce.etiqueta) // Apenas o objeto Etiqueta
+      };
+
+      res.json({ sucesso: true, conversa: conversaComEtiquetasFormatadas });
+    } catch (erro) {
+      console.error('❌ Erro ao obter detalhes da conversa:', erro);
+      res.status(500).json({ sucesso: false, erro: 'Erro interno ao buscar detalhes da conversa' });
+    }
+  }
+
+
+  // ===== CRIAR NOVA CONVERSA =====
+  async criarConversa(req, res) {
+    try {
+      const { numeroCliente, nomeCliente } = req.body;
+      const { contaId } = req.usuario;
+
+      if (!numeroCliente) {
+        return res.status(400).json({ sucesso: false, erro: 'Número do cliente é obrigatório' });
+      }
+
+       if (!contaId) {
+         return res.status(401).json({ sucesso: false, erro: 'Usuário não autenticado' });
+       }
+
+      const numeroLimpo = numeroCliente.replace(/\D/g, '');
+
+      // Verificar se já existe uma conversa para este número nesta conta
+      const existente = await prisma.conversa.findFirst({
+        where: {
+          // Usar 'contains' pode trazer múltiplos resultados se houver números parciais
+          // Idealmente, buscar pelo número exato formatado ou ID do WhatsApp
+          numeroCliente: { contains: numeroLimpo },
+          contaId: contaId
+        }
+      });
+
+      if (existente) {
+        // Retornar a conversa existente em vez de erro
+        return res.status(200).json({ sucesso: true, conversa: existente, mensagem: 'Conversa já existente encontrada.' });
+      }
+
+      // Encontrar a primeira conexão ativa para associar a conversa
+      // Idealmente, permitiria escolher a conexão/instância
+      const conexaoPadrao = await prisma.conexaoWhatsApp.findFirst({
+         where: { contaId: contaId, status: 'CONECTADO' },
+         orderBy: { criadaEm: 'asc'} // Ou alguma outra lógica para escolher
+      });
+
+      if (!conexaoPadrao) {
+         return res.status(400).json({ sucesso: false, erro: 'Nenhuma conexão WhatsApp ativa encontrada para associar a nova conversa.' });
+      }
+
+      // Criar nova conversa
+      const novaConversa = await prisma.conversa.create({
+        data: {
+          numeroCliente: numeroCliente, // Salvar como recebido, ou normalizado?
+          nomeContato: nomeCliente || numeroCliente, // Campo é nomeContato no schema
+          contaId: contaId,
+          conexaoWhatsAppId: conexaoPadrao.id, // Associar à conexão encontrada
+          statusConversa: 'CAIXA_ENTRADA', // Enum StatusConversa
+          ultimaMensagemEm: new Date(), // Definir para agora
+          naoLidas: 0, // Inicia sem mensagens não lidas
+          // Definir outros padrões se necessário (fixada: false, etc.)
+        }
+      });
+
+      res.status(201).json({ sucesso: true, conversa: novaConversa, mensagem: 'Conversa criada com sucesso' });
+    } catch (erro) {
+      console.error('❌ Erro ao criar conversa:', erro);
+      if (erro.code === 'P2002') { // Erro de violação de chave única (ex: numeroCliente + conexaoWhatsAppId)
+         return res.status(409).json({ sucesso: false, erro: 'Já existe uma conversa com este número nesta conexão.' });
+      }
+      res.status(500).json({ sucesso: false, erro: 'Erro interno ao criar conversa' });
+    }
+  }
+
+
+  // ===== DELETAR CONVERSA =====
+  async deletarConversa(req, res) {
+    try {
+      const { conversaId } = req.params;
+      const { contaId } = req.usuario;
+
+       if (!contaId) {
+         return res.status(401).json({ sucesso: false, erro: 'Usuário não autenticado' });
+       }
+
+      // Verificar se a conversa existe e pertence à conta antes de deletar
+      const conversa = await prisma.conversa.findFirst({
+        where: {
+          id: conversaId,
+          contaId: contaId
+        }
+      });
+
+      if (!conversa) {
+        return res.status(404).json({ sucesso: false, erro: 'Conversa não encontrada ou não pertence à sua conta' });
+      }
+
+      // Deletar usando transação para garantir que mensagens e conversa sejam removidas
+      // ATENÇÃO: Isso deleta PERMANENTEMENTE. Considere arquivar ou marcar como deletada.
+      await prisma.$transaction([
+        // Deletar relações primeiro (ex: ConversaEtiqueta, ConversaAtribuida, Anotacao)
+        prisma.conversaEtiqueta.deleteMany({ where: { conversaId: conversaId } }),
+        prisma.conversaAtribuida.deleteMany({ where: { conversaId: conversaId } }),
+        prisma.anotacao.deleteMany({ where: { conversaId: conversaId } }),
+        // Deletar mensagens
+        prisma.mensagem.deleteMany({ where: { conversaId: conversaId } }),
+        // Deletar a conversa
+        prisma.conversa.delete({ where: { id: conversaId } })
+      ]);
+
+      res.status(200).json({ sucesso: true, mensagem: 'Conversa e mensagens relacionadas deletadas com sucesso' });
+    } catch (erro) {
+      console.error('❌ Erro ao deletar conversa:', erro);
+       if (erro.code === 'P2025') {
+          return res.status(404).json({ sucesso: false, erro: 'Conversa não encontrada para deletar.' });
+       }
+      res.status(500).json({ sucesso: false, erro: 'Erro interno ao deletar conversa' });
+    }
+  }
+
+
+  // ===================================================
+  // ✅ CÓDIGO ADICIONADO (CORRIGIDO COM ARROW FUNCTIONS)
+  // ===================================================
+
+  /**
+   * Função genérica de placeholder para métodos não implementados
+   */
+  _placeholder = async (req, res, nomeFuncao) => {
+    console.warn(`⚠️ AVISO: A função "${nomeFuncao}" foi chamada mas não está implementada.`);
+    res.status(501).json({
+      sucesso: false,
+      erro: `Função não implementada: ${nomeFuncao}`
+    });
+  }
+
+  // ===== BLOCO 1: GERENCIAR ETIQUETAS (PLACEHOLDERS CORRIGIDOS) =====
+
+  listarEtiquetas = async (req, res) => {
+    await this._placeholder(req, res, 'listarEtiquetas');
+  }
+
+  criarEtiqueta = async (req, res) => {
+    await this._placeholder(req, res, 'criarEtiqueta');
+  }
+
+  atualizarEtiqueta = async (req, res) => {
+    await this._placeholder(req, res, 'atualizarEtiqueta');
+  }
+
+  deletarEtiqueta = async (req, res) => {
+    await this._placeholder(req, res, 'deletarEtiqueta');
+  }
+
+  adicionarEtiqueta = async (req, res) => {
+    await this._placeholder(req, res, 'adicionarEtiqueta');
+  }
+
+  removerEtiqueta = async (req, res) => {
+    await this._placeholder(req, res, 'removerEtiqueta');
+  }
+
+}
+
+module.exports = new ConversasControlador();

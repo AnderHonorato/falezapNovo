@@ -1,0 +1,22 @@
+{
+  "linksUteis": [
+    {
+      "id": 1766247201146,
+      "title": "Instagram",
+      "sub": "Me siga na rede social",
+      "url": "https://www.instagram.com/honorato_ann/",
+      "color": "indigo"
+    },
+    {
+      "id": 1766247285676,
+      "title": "Whatsapp",
+      "sub": "Entre em contato comigo",
+      "url": "https://wa.me/5577999512937?text=Gostaria%20de%20obter%20mais%20informa%C3%A7%C3%B5es%20do%20FaleZap",
+      "color": "indigo"
+    }
+  ],
+  "dica": {
+    "titulo": "Em constante evolução",
+    "texto": "Sempre evoluindo e trazendo o que tem melhor da tecnologia. Aguarde sempre novidades!"
+  }
+}

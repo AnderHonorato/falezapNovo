@@ -1,0 +1,165 @@
+/* frontend/src/componentes/mensagens/css/SeletorAnexos.css */
+
+/* Backdrop (REMOVIDO) */
+
+/* Container do menu (AGORA É FIXED) */
+.anexos-container {
+  position: fixed; /* MUDADO DE absolute para fixed */
+  /* bottom e left são aplicados via style no .jsx */
+  
+  z-index: 1050; /* Acima do painel de anotações (999) */
+  
+  min-width: 240px; 
+  background: linear-gradient(135deg, rgba(15, 23, 42, 0.9) 0%, rgba(30, 41, 59, 0.95) 100%);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 20px; 
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
+  padding: 12px;
+  animation: anexoSlideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) 0.05s backwards;
+}
+
+@keyframes anexoSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Light Theme */
+.light-theme .anexos-container {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(248, 250, 252, 0.95) 100%);
+  border-color: rgba(226, 232, 240, 0.8);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.15);
+}
+
+/* Header do menu */
+.anexos-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 8px 12px 8px; 
+  border-bottom: 1px solid rgba(148, 163, 184, 0.15); 
+  margin-bottom: 8px;
+}
+
+.light-theme .anexos-header {
+  border-color: rgba(226, 232, 240, 0.8);
+}
+
+.anexos-titulo {
+  font-size: 14px; 
+  font-weight: 700; 
+  color: #e2e8f0; 
+}
+
+.light-theme .anexos-titulo {
+  color: #1e293b;
+}
+
+/* Botão Fechar (estilo .anotacao-btn-icon) */
+.anexos-fechar-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  border: none;
+  background: rgba(148, 163, 184, 0.1);
+  backdrop-filter: blur(10px);
+  color: #94a3b8;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.anexos-fechar-btn:hover {
+  background: rgba(148, 163, 184, 0.2);
+  color: #e2e8f0;
+  transform: translateY(-3px) scale(1.1);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+}
+
+.light-theme .anexos-fechar-btn {
+  background: rgba(226, 232, 240, 0.5);
+  color: #64748b;
+}
+
+.light-theme .anexos-fechar-btn:hover {
+  background: rgba(226, 232, 240, 0.8);
+  color: #1e293b;
+}
+
+/* Lista de opções */
+.anexos-opcoes-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 8px; 
+}
+
+/* Botão de opção (Foto, Vídeo, etc.) */
+.anexos-opcao-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px; 
+  padding: 10px; 
+  border-radius: 14px; 
+  border: 1px solid transparent;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.anexos-opcao-btn:hover {
+  background: rgba(148, 163, 184, 0.1);
+  border-color: rgba(148, 163, 184, 0.2);
+  transform: scale(1.02);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.light-theme .anexos-opcao-btn:hover {
+  background: rgba(241, 245, 249, 0.8);
+  border-color: rgba(226, 232, 240, 0.8);
+}
+
+/* Ícone colorido */
+.anexos-icon-wrapper {
+  width: 40px; 
+  height: 40px;
+  border-radius: 12px; 
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: white;
+  background: var(--cor-base, #8b5cf6);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--cor-base, #8b5cf6) 40%, transparent);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.anexos-opcao-btn:hover .anexos-icon-wrapper {
+  transform: scale(1.1) rotate(-5deg);
+}
+
+.anexos-label {
+  font-size: 14px; 
+  font-weight: 600; 
+  color: #e2e8f0; 
+}
+
+.light-theme .anexos-label {
+  color: #1e293b;
+}
+
+.anexos-input-oculto {
+  display: none;
+}

@@ -1,0 +1,387 @@
+## BLOCO 10: RECURSOS EXCLUSIVOS DO WHATSAPP BUSINESS
+
+### 58. Catálogo de produtos com carrinho de compras
+**Descrição:** Usuário adiciona produtos ao carrinho e finaliza pedido diretamente no WhatsApp.
+
+**É possível implementar via API:** Sim (parcial)
+
+**Como implementar:**
+- Enviar mensagens de catálogo (já explicado anteriormente)
+- Receber pedidos via webhook (type: `order`)
+- Implementar lógica de carrinho no backend
+- Processar pagamento separadamente
+
+**Exemplo prático:**
+```javascript
+// Sistema de carrinho (gerenciado no backend)
+const carrinhos = new Map();
+
+// Adicionar produto ao carrinho
+async function adicionarAoCarrinho(numeroCliente, produtoId, quantidade) {
+  if (!carrinhos.has(numeroCliente)) {
+    carrinhos.set(numeroCliente, []);
+  }
+  
+  const carrinho = carrinhos.get(numeroCliente);
+  const produto = await buscarProduto(produtoId);
+  
+  carrinho.push({
+    produtoId: produtoId,
+    nome: produto.nome,
+    preco: produto.preco,
+    quantidade: quantidade,
+    subtotal: produto.preco * quantidade
+  });
+  
+  // Confirmar adição
+  await enviarMensagem(
+    numeroCliente,
+    `✅ ${produto.nome} (${quantidade}x) adicionado ao carrinho!\n\n` +
+    `Subtotal: R$ ${(produto.preco * quantidade).toFixed(2)}\n\n` +
+    `Digite "carrinho" para ver todos os itens ou "finalizar" para concluir o pedido.`
+  );
+}
+
+// Ver carrinho
+async function exibirCarrinho(numeroCliente) {
+  const carrinho = carrinhos.get(numeroCliente) || [];
+  
+  if (carrinho.length === 0) {
+    await enviarMensagem(numeroCliente, '🛒 Seu carrinho está vazio.');
+    return;
+  }
+  
+  const total = carrinho.reduce((sum, item) => sum + item.subtotal, 0);
+  
+  let mensagem = '🛒 *Seu Carrinho*\n\n';
+  carrinho.forEach((item, index) => {
+    mensagem += `${index + 1}. ${item.nome}\n`;
+    mensagem += `   ${item.quantidade}x R$ ${item.preco.toFixed(2)} = R$ ${item.subtotal.toFixed(2)}\n\n`;
+  });
+  
+  mensagem += `*Total: R$ ${total.toFixed(2)}*\n\n`;
+  mensagem += 'Digite "finalizar" para concluir o pedido.';
+  
+  await enviarMensagem(numeroCliente, mensagem);
+}
+
+// Finalizar pedido
+async function finalizarPedido(numeroCliente) {
+  const carrinho = carrinhos.get(numeroCliente);
+  
+  if (!carrinho || carrinho.length === 0) {
+    await enviarMensagem(numeroCliente, '❌ Carrinho vazio.');
+    return;
+  }
+  
+  const total = carrinho.reduce((sum, item) => sum + item.subtotal, 0);
+  
+  // Salvar pedido
+  const pedido = await db.pedidos.insert({
+    cliente: numeroCliente,
+    itens: carrinho,
+    total: total,
+    status: 'aguardando_pagamento',
+    criadoEm: new Date()
+  });
+  
+  // Limpar carrinho
+  carrinhos.delete(numeroCliente);
+  
+  // Enviar confirmação com opções de pagamento
+  await enviarMensagemComBotoes(numeroCliente, {
+    texto: `✅ Pedido #${pedido._id} criado!\n\n` +
+           `Total: R$ ${total.toFixed(2)}\n\n` +
+           `Escolha a forma de pagamento:`,
+    botoes: [
+      {id: 'pix', titulo: 'PIX'},
+      {id: 'cartao', titulo: 'Cartão'},
+      {id: 'boleto', titulo: 'Boleto'}
+    ]
+  });
+}
+
+// Processar escolha de pagamento
+async function processarPagamento(numeroCliente, pedidoId, formaPagamento) {
+  const pedido = await db.pedidos.findOne({_id: pedidoId});
+  
+  switch(formaPagamento) {
+    case 'pix':
+      const pixCode = gerarCodigoPix(pedido.total, pedidoId);
+      await enviarMensagem(
+        numeroCliente,
+        `💰 *Pagamento via PIX*\n\n` +
+        `Valor: R$ ${pedido.total.toFixed(2)}\n\n` +
+        `Chave PIX:\n${pixCode}\n\n` +
+        `Ou escaneie o QR Code abaixo:`
+      );
+      await enviarImagemQRCode(numeroCliente, pixCode);
+      break;
+      
+    case 'cartao':
+      const linkPagamento = gerarLinkPagamentoCartao(pedidoId);
+      await enviarMensagem(
+        numeroCliente,
+        `💳 *Pagamento via Cartão*\n\n` +
+        `Clique no link para pagar:\n${linkPagamento}`
+      );
+      break;
+      
+    case 'boleto':
+      const boletoUrl = gerarBoleto(pedidoId);
+      await enviarDocumento(numeroCliente, boletoUrl, 'boleto.pdf');
+      break;
+  }
+}
+```
+
+**Observações:** 
+- WhatsApp não processa pagamentos
+- Integrar com gateway de pagamento (Stripe, Mercado Pago, PagSeguro)
+- Gerenciar carrinho no backend
+- Confirmar pagamento antes de processar pedido
+
+---
+
+### 59. Links de produtos e coleções
+**Descrição:** Compartilhar links diretos para produtos do catálogo.
+
+**É possível implementar via API:** Sim
+
+**Como implementar:**
+- Gerar links wa.me com parâmetros de produto
+- Ou enviar mensagens de produto específico via API
+
+**Exemplo prático:**
+```javascript
+// Gerar link compartilhável de produto
+function gerarLinkProduto(produtoId) {
+  const mensagemPredefinida = encodeURIComponent(`Olá! Gostaria de saber mais sobre o produto ${produtoId}`);
+  return `https://wa.me/${NUMERO_WHATSAPP_BUSINESS}?text=${mensagemPredefinida}`;
+}
+
+// Enviar produto específico (já mostrado anteriormente)
+async function compartilharProduto(destinatario, produtoId) {
+  await enviarProduto(destinatario, produtoId);
+}
+
+// QR Code para produto
+async function gerarQRCodeProduto(produtoId) {
+  const QRCode = require('qrcode');
+  const link = gerarLinkProduto(produtoId);
+  const qrCodeDataUrl = await QRCode.toDataURL(link);
+  return qrCodeDataUrl;
+}
+```
+
+**Observações:** Links wa.me funcionam para abrir conversa com mensagem pré-definida sobre produto.
+
+---
+
+### 60. Estatísticas e insights do perfil comercial
+**Descrição:** Ver métricas do perfil: visualizações, cliques em botões, mensagens enviadas/recebidas.
+
+**É possível implementar via API:** Sim (parcial)
+
+**Como implementar:**
+- Endpoint: `GET https://graph.facebook.com/v21.0/{phone_number_id}/analytics`
+- Métricas disponíveis limitadas
+- Complementar com analytics próprio
+
+**Exemplo prático:**
+```javascript
+// Obter analytics da API (recursos limitados)
+async function obterAnalyticsWhatsApp(inicio, fim) {
+  const response = await fetch(
+    `https://graph.facebook.com/v21.0/${PHONE_NUMBER_ID}/analytics?` +
+    `start=${inicio}&end=${fim}&granularity=DAY`,
+    {headers: {'Authorization': `Bearer ${ACCESS_TOKEN}`}}
+  );
+  
+  return response.json();
+}
+
+// Analytics próprio (mais detalhado)
+async function gerarAnalyticsCompleto(periodo) {
+  return {
+    // Mensagens
+    mensagensEnviadas: await db.mensagens.count({
+      direcao: 'enviada',
+      timestamp: {$gte: periodo.inicio, $lte: periodo.fim}
+    }),
+    
+    mensagensRecebidas: await db.mensagens.count({```javascript
+      direcao: 'recebida',
+      timestamp: {$gte: periodo.inicio, $lte: periodo.fim}
+    }),
+    
+    // Conversas
+    novasConversas: await db.conversas.count({
+      primeiraInteracao: {$gte: periodo.inicio, $lte: periodo.fim}
+    }),
+    
+    conversasAtivas: await db.conversas.count({
+      ultimaInteracao: {$gte: periodo.inicio, $lte: periodo.fim}
+    }),
+    
+    // Engajamento
+    taxaResposta: await calcularTaxaResposta(periodo),
+    tempoMedioResposta: await calcularTempoMedioResposta(periodo),
+    
+    // Por tipo de mensagem
+    porTipo: await db.mensagens.aggregate([
+      {
+        $match: {
+          timestamp: {$gte: periodo.inicio, $lte: periodo.fim}
+        }
+      },
+      {
+        $group: {
+          _id: '$type',
+          total: {$sum: 1}
+        }
+      }
+    ]),
+    
+    // Horários de pico
+    porHora: await db.mensagens.aggregate([
+      {
+        $match: {
+          direcao: 'recebida',
+          timestamp: {$gte: periodo.inicio, $lte: periodo.fim}
+        }
+      },
+      {
+        $group: {
+          _id: {$hour: '$timestamp'},
+          total: {$sum: 1}
+        }
+      },
+      {$sort: {total: -1}}
+    ]),
+    
+    // Por dia da semana
+    porDiaSemana: await db.mensagens.aggregate([
+      {
+        $match: {
+          timestamp: {$gte: periodo.inicio, $lte: periodo.fim}
+        }
+      },
+      {
+        $group: {
+          _id: {$dayOfWeek: '$timestamp'},
+          total: {$sum: 1}
+        }
+      }
+    ]),
+    
+    // Templates mais usados
+    templatesMaisUsados: await db.mensagens.aggregate([
+      {
+        $match: {
+          type: 'template',
+          timestamp: {$gte: periodo.inicio, $lte: periodo.fim}
+        }
+      },
+      {
+        $group: {
+          _id: '$templateName',
+          total: {$sum: 1},
+          taxaLeitura: {
+            $avg: {$cond: [{$eq: ['$status', 'read']}, 1, 0]}
+          }
+        }
+      },
+      {$sort: {total: -1}},
+      {$limit: 10}
+    ]),
+    
+    // Produtos mais visualizados (do catálogo)
+    produtosMaisVistos: await db.interacoesCatalogo.aggregate([
+      {
+        $match: {
+          timestamp: {$gte: periodo.inicio, $lte: periodo.fim}
+        }
+      },
+      {
+        $group: {
+          _id: '$productId',
+          visualizacoes: {$sum: 1},
+          pedidos: {
+            $sum: {$cond: [{$eq: ['$tipo', 'pedido']}, 1, 0]}
+          }
+        }
+      },
+      {$sort: {visualizacoes: -1}},
+      {$limit: 10}
+    ]),
+    
+    // Taxa de conversão (visualização → pedido)
+    taxaConversao: await calcularTaxaConversao(periodo),
+    
+    // Origem das conversas
+    origemConversas: {
+      qrCode: await db.conversas.count({origem: 'qr_code', ...periodo}),
+      link: await db.conversas.count({origem: 'link', ...periodo}),
+      direto: await db.conversas.count({origem: 'direto', ...periodo}),
+      template: await db.conversas.count({origem: 'template', ...periodo})
+    },
+    
+    // Satisfação (se implementado)
+    avaliacoes: await calcularMediaAvaliacoes(periodo)
+  };
+}
+
+// Dashboard visual
+function renderizarDashboard(analytics) {
+  return `
+    <div class="dashboard-whatsapp">
+      <div class="metric-card">
+        <h3>📨 Mensagens</h3>
+        <div class="metric-value">${analytics.mensagensRecebidas}</div>
+        <div class="metric-label">Recebidas</div>
+        <div class="metric-value">${analytics.mensagensEnviadas}</div>
+        <div class="metric-label">Enviadas</div>
+      </div>
+      
+      <div class="metric-card">
+        <h3>💬 Conversas</h3>
+        <div class="metric-value">${analytics.novasConversas}</div>
+        <div class="metric-label">Novas</div>
+        <div class="metric-value">${analytics.conversasAtivas}</div>
+        <div class="metric-label">Ativas</div>
+      </div>
+      
+      <div class="metric-card">
+        <h3>⚡ Performance</h3>
+        <div class="metric-value">${analytics.taxaResposta.toFixed(1)}%</div>
+        <div class="metric-label">Taxa de Resposta</div>
+        <div class="metric-value">${analytics.tempoMedioResposta.toFixed(1)}min</div>
+        <div class="metric-label">Tempo Médio</div>
+      </div>
+      
+      <div class="metric-card">
+        <h3>🛍️ Catálogo</h3>
+        <div class="metric-value">${analytics.taxaConversao.toFixed(1)}%</div>
+        <div class="metric-label">Taxa de Conversão</div>
+      </div>
+    </div>
+    
+    <div class="charts-container">
+      <canvas id="chart-horarios"></canvas>
+      <canvas id="chart-tipos-mensagem"></canvas>
+      <canvas id="chart-dia-semana"></canvas>
+    </div>
+  `;
+}
+```
+
+**Observações:** 
+- API oficial tem analytics limitado
+- Implementar analytics próprio para métricas detalhadas
+- Usar Chart.js ou similar para visualizações
+- Atualizar métricas em tempo real com WebSocket
+
+---
+
+CONTINUE NO BLOCO11

@@ -1,0 +1,461 @@
+/* frontend/src/componentes/mensagens/css/CabecalhoChat.css */
+
+/* --- CONTAINER PRINCIPAL --- */
+.cabecalho-chat {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-height: 60px; 
+  max-height: 60px;
+  padding: 0 16px;
+  
+  background: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
+  
+  transition: background 0.2s, border-color 0.2s;
+  flex-shrink: 0;
+  z-index: 30;
+}
+
+/* --- CONTEÚDO --- */
+.cabecalho-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  gap: 16px;
+  /* Garante que o conteúdo suma suavemente se necessário, mas o overlay cobre */
+}
+
+/* --- INFO (Avatar + Nome) --- */
+.cabecalho-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
+  cursor: pointer;
+  padding: 6px 8px;
+  margin-left: -8px; 
+  border-radius: 10px;
+  transition: background 0.2s;
+}
+
+.cabecalho-info:hover {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+/* Avatar */
+.cabecalho-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  background: #e2e8f0;
+  color: #64748b;
+  border: 1px solid #f1f5f9;
+}
+
+.cabecalho-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.avatar-placeholder {
+  font-size: 20px;
+}
+
+/* Texto */
+.cabecalho-texto {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.cabecalho-nome {
+  font-size: 15px;
+  font-weight: 600;
+  color: #1e293b;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.2;
+}
+
+.cabecalho-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 400;
+  color: #64748b;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin: 0;
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background-color: #10b981;
+}
+
+/* --- AÇÕES (Botões) --- */
+.cabecalho-acoes {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.cabecalho-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%; 
+  border: 1px solid transparent;
+  background: transparent;
+  color: #64748b;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  position: relative;
+}
+
+.cabecalho-btn:hover,
+.cabecalho-btn.active {
+  background: #ffffff;
+  border-color: #e2e8f0;
+  color: #1e293b;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.cabecalho-btn:active {
+  transform: scale(0.95);
+}
+
+/* Botão Adicionar */
+.cabecalho-btn-adicionar {
+  color: #10b981;
+  background: #f0fdf4;
+  border-color: #dcfce7;
+}
+
+.cabecalho-btn-adicionar:hover {
+  background: #10b981;
+  color: #ffffff;
+  border-color: #10b981;
+}
+
+/* Badges */
+.badge-anotacoes,
+.badge-favoritas {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 8px;
+  background: #10b981;
+  color: #ffffff;
+  font-size: 10px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 4px rgba(16, 185, 129, 0.3);
+  border: 2px solid #ffffff;
+}
+
+.badge-favoritas {
+  background: #ef4444;
+  box-shadow: 0 2px 4px rgba(239, 68, 68, 0.3);
+}
+
+/* ====== PAINEL DE BUSCA (DESLIZANTE HORIZONTAL) ====== */
+.cabecalho-busca-container {
+  position: absolute;
+  /* Ocupa todo o header */
+  inset: 0; 
+  z-index: 40;
+  
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 16px;
+  
+  background: #f8fafc; /* Mesma cor do header para cobrir */
+  border-bottom: 1px solid #e2e8f0;
+
+  /* Animação vindo da direita */
+  transform-origin: right center;
+  animation: slideInLeft 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes slideInLeft {
+  from { 
+    opacity: 0; 
+    transform: translateX(20px); /* Começa um pouco à direita */
+  }
+  to { 
+    opacity: 1; 
+    transform: translateX(0); 
+  }
+}
+
+.busca-input-novo {
+  flex: 1;
+  height: 36px;
+  border-radius: 20px; /* Mais arredondado (pílula) */
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  outline: none;
+  color: #334155;
+  font-size: 14px;
+  padding: 0 16px;
+  transition: all 0.2s;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+}
+
+.busca-input-novo:focus {
+  border-color: #10b981;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+}
+
+.busca-results-count {
+  font-size: 12px;
+  font-weight: 600;
+  color: #94a3b8;
+  white-space: nowrap;
+  min-width: 40px;
+  text-align: center;
+}
+
+/* Botões de Navegação da Busca */
+.busca-nav-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  color: #64748b;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.busca-nav-btn:hover:not(:disabled) {
+  background: #f1f5f9;
+  color: #1e293b;
+  border-color: #cbd5e1;
+}
+
+.busca-nav-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: #f8fafc;
+}
+
+/* Botão Fechar Busca */
+.busca-close-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  color: #64748b;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  flex-shrink: 0;
+  margin-left: 4px;
+}
+
+.busca-close-btn:hover {
+  background: #fee2e2;
+  color: #ef4444;
+  transform: rotate(90deg);
+}
+
+/* ====== MENU DROPDOWN ====== */
+.menu-wrapper {
+  position: relative;
+}
+
+.menu-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 38;
+  cursor: default;
+}
+
+.cabecalho-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: 240px;
+  background: #ffffff;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.15);
+  padding: 6px;
+  z-index: 39;
+  overflow: hidden;
+  animation: menuPop 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes menuPop {
+  from { opacity: 0; transform: translateY(-10px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.menu-item {
+  width: 100%;
+  padding: 10px 12px;
+  border: none;
+  background: transparent;
+  color: #334155;
+  font-size: 13px;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  transition: background 0.1s;
+}
+
+.menu-item:hover {
+  background: #f1f5f9;
+  color: #1e293b;
+}
+
+.menu-item svg {
+  color: #64748b;
+}
+
+.menu-divider {
+  height: 1px;
+  background: #f1f5f9;
+  margin: 4px 0;
+}
+
+/* ============================================================
+   🌑 TEMA ESCURO (WhatsApp Web Style)
+   ============================================================ */
+
+.cabecalho-chat.tema-escuro {
+  background: #202c33;
+  border-bottom-color: #2a3942;
+}
+
+/* Info Dark */
+.cabecalho-chat.tema-escuro .cabecalho-info:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.cabecalho-chat.tema-escuro .cabecalho-nome { color: #e9edef; }
+.cabecalho-chat.tema-escuro .cabecalho-status { color: #8696a0; }
+
+.cabecalho-chat.tema-escuro .cabecalho-avatar {
+  background: #111b21;
+  border-color: #2a3942;
+  color: #8696a0;
+}
+
+/* Botões Dark */
+.cabecalho-chat.tema-escuro .cabecalho-btn {
+  color: #aebac1;
+}
+
+.cabecalho-chat.tema-escuro .cabecalho-btn:hover,
+.cabecalho-chat.tema-escuro .cabecalho-btn.active {
+  background: #37404a;
+  border-color: #37404a;
+  color: #e9edef;
+}
+
+.cabecalho-chat.tema-escuro .cabecalho-btn-adicionar {
+  background: #00a884;
+  color: #111b21;
+  border-color: #00a884;
+}
+.cabecalho-chat.tema-escuro .cabecalho-btn-adicionar:hover {
+  background: #008f6f;
+  color: #ffffff;
+}
+
+/* Busca Dark (Overlay) */
+.cabecalho-chat.tema-escuro .cabecalho-busca-container {
+  background: #202c33; /* Mesma cor do header dark */
+  border-bottom-color: #2a3942;
+}
+
+.cabecalho-chat.tema-escuro .busca-input-novo {
+  background: #2a3942;
+  border-color: #2a3942;
+  color: #d1d7db;
+}
+.cabecalho-chat.tema-escuro .busca-input-novo:focus {
+  border-color: #00a884;
+  background: #202c33;
+}
+
+.cabecalho-chat.tema-escuro .busca-nav-btn { 
+  background: #202c33;
+  border-color: #2a3942;
+  color: #8696a0; 
+}
+.cabecalho-chat.tema-escuro .busca-nav-btn:hover:not(:disabled) { 
+  background: #37404a; 
+  color: #e9edef; 
+}
+.cabecalho-chat.tema-escuro .busca-nav-btn:disabled {
+  background: #202c33;
+  opacity: 0.3;
+}
+
+.cabecalho-chat.tema-escuro .busca-close-btn { color: #aebac1; }
+.cabecalho-chat.tema-escuro .busca-close-btn:hover {
+  background: #37404a;
+  color: #ef4444;
+}
+
+/* Menu Dark */
+.cabecalho-chat.tema-escuro .cabecalho-menu {
+  background: #233138;
+  border-color: #2a3942;
+}
+
+.cabecalho-chat.tema-escuro .menu-item {
+  color: #d1d7db;
+}
+.cabecalho-chat.tema-escuro .menu-item:hover {
+  background: #111b21;
+}
+.cabecalho-chat.tema-escuro .menu-item svg {
+  color: #8696a0;
+}
+
+.cabecalho-chat.tema-escuro .menu-divider {
+  background: #2a3942;
+}

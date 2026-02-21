@@ -1,0 +1,1136 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Conta {
+  id                           String                        @id @default(uuid())
+  tipo                         TipoConta
+  documento                    String                        @unique
+  razaoSocial                  String?
+  nomeFantasia                 String?
+  nomeCompleto                 String?
+  email                        String                        @unique
+  telefone                     String?
+  ativo                        Boolean                       @default(true)
+  criadoEm                     DateTime                      @default(now())
+  atualizadoEm                 DateTime                      @updatedAt
+  inativadaEm                  DateTime?
+  bairro                       String?
+  cep                          String?
+  cidade                       String?
+  cnpj                         String?                       @unique
+  complemento                  String?
+  dataAssinatura               DateTime?
+  dataVencimento               DateTime?
+  emailPrincipal               String?                       @unique
+  estado                       String?
+  inscricaoEstadual            String?
+  inscricaoMunicipal           String?
+  limiteWhatsApps              Int                           @default(1)
+  logradouro                   String?
+  numero                       String?
+  plano                        String?
+  status                       String                        @default("ATIVO")
+  telefonePrincipal            String?
+  telefoneSecundario           String?
+  alertasChatInterno           AlertaChatInterno[]
+  categorias                   Categoria[]
+  categoriasAtendimento        CategoriaAtendimento[]
+  conexoesWhatsApp             ConexaoWhatsApp[]
+  conversas                    Conversa[]
+  conversasIA                  ConversaIA[]                  @relation("ContaConversasIA")
+  empresas                     Empresa[]
+  etiquetas                    Etiqueta[]
+  gruposChatInterno            GrupoChatInterno[]
+  mensagens                    Mensagem[]
+  mensagensChatInterno         MensagemChatInterno[]
+  setores                      Setor[]
+  solicitacoesAjudaChatInterno SolicitacaoAjudaChatInterno[]
+  statusAtendimento            StatusAtendimento[]
+  templatesWhatsApp            TemplateWhatsApp[]
+  usuarios                     Usuario[]
+  whatsappInstancias           WhatsAppInstancia[]
+
+  @@map("contas")
+}
+
+model Usuario {
+  id                          String                            @id @default(uuid())
+  nome                        String
+  email                       String?                           @unique
+  senha                       String
+  cpf                         String?                           @unique
+  telefone                    String?
+  tipo                        TipoUsuario                       @default(COLABORADOR)
+  status                      StatusUsuario                     @default(PENDENTE)
+  avatar                      String?
+  recado                      String?
+  dispositivo                 String?
+  podeEnviarMsg               Boolean                           @default(true)
+  podeReceberMsg              Boolean                           @default(true)
+  podeGerenciarBot            Boolean                           @default(false)
+  podeVerRelatorios           Boolean                           @default(false)
+  podeBaixarRelatorios        Boolean                           @default(false)
+  contaId                     String
+  setorId                     String?
+  criadoEm                    DateTime                          @default(now())
+  atualizadoEm                DateTime                          @updatedAt
+  ultimoAcesso                DateTime?
+  wallpaper                   String?
+  cidade                      String?
+  empresa                     String?
+  endereco                    String?
+  estado                      String?
+  foto_perfil                 String?
+  tokenResetSenha             String?                           @unique
+  tokenResetSenhaExpira       DateTime?
+  podeGerenciarConexoes       Boolean                           @default(false)
+  categoriaId                 String?
+  paginaAtual                 String?
+  configuracaoHorarios        Json?
+  nickname                    String?                           @unique
+  inativadoEm                 DateTime?
+  cargo                       String?
+  dataAdmissao                DateTime?
+  dataNascimento              DateTime?
+  departamento                String?
+  empresaId                   String?
+  podeAcessarAnalytics        Boolean                           @default(false)
+  podeAcessarBlog             Boolean                           @default(true)
+  podeAcessarChatInterno      Boolean                           @default(false)
+  podeAcessarDashboard        Boolean                           @default(true)
+  podeAcessarEmpresasUsuarios Boolean                           @default(false)
+  podeAcessarEquipe           Boolean                           @default(false)
+  podeAcessarMensagens        Boolean                           @default(true)
+  podeAcessarSuporte          Boolean                           @default(false)
+  podeAcessarWhatsApp         Boolean                           @default(false)
+  podeCriarPost               Boolean                           @default(false)
+  podeGerenciarEmpresas       Boolean                           @default(false)
+  podeGerenciarEquipe         Boolean                           @default(false)
+  podeGerenciarUsuarios       Boolean                           @default(false)
+  podeVerAlertas              Boolean                           @default(false)
+  podeVerSolicitacoesAjuda    Boolean                           @default(false)
+  privacidade                 Json?                             @default("{\"foto\": true, \"cargo\": true, \"email\": true, \"recado\": true, \"telefone\": true}")
+  podeModerarBlog             Boolean                           @default(false)
+  podeVerCardMensagensDia     Boolean                           @default(true)
+  podeVerCardAnalyticsResumo  Boolean                           @default(false)
+  podeVerCardUsuariosOnline   Boolean                           @default(false)
+  podeVerCardTMR              Boolean                           @default(false)
+  podeVerGraficos             Boolean                           @default(false)
+  podeVerFunil                Boolean                           @default(false)
+  podeVerHeatmap              Boolean                           @default(false)
+  podeVerCardConexoes         Boolean                           @default(false)
+  podeVerResumoKpis           Boolean                           @default(true)
+  podeVerGraficosAvancados    Boolean                           @default(true)
+  podeVerRankingEquipe        Boolean                           @default(false)
+  podeUsarIAAnalytics         Boolean                           @default(false)
+  alertasEnviados             AlertaChatInterno[]               @relation("AlertasEnviados")
+  analises                    Analise[]
+  anotacoes                   Anotacao[]                        @relation("UsuarioAnotacoes")
+  likesComentarios            LikeComentario[]
+  posts                       BlogPost[]                        @relation("PostsAutorBlog")
+  comentarios                 Comentario[]                      @relation("ComentariosAutorNovo")
+  comentariosBlog             ComentarioBlog[]                  @relation("ComentariosAutor")
+  contatosWhatsApp            ContatoWhatsApp[]
+  conversasResponsavel        Conversa[]                        @relation("UsuarioResponsavel")
+  conversasAtribuidas         ConversaAtribuida[]
+  conversasIA                 ConversaIA[]                      @relation("UsuarioConversasIA")
+  curtidasChatInterno         CurtidaMensagemChatInterno[]      @relation("CurtidasChat")
+  alertasRecebidos            DestinatarioAlertaChatInterno[]   @relation("AlertasRecebidos")
+  exclusoesChatInterno        ExclusaoMensagemChatInterno[]     @relation("ExclusoesChat")
+  favoritadoPor               FavoritoChatInterno[]             @relation("UsuarioFavoritadoPor")
+  favoritosAdicionados        FavoritoChatInterno[]             @relation("UsuarioFavoritos")
+  gruposCriados               GrupoChatInterno[]                @relation("GruposCriados")
+  historicoComentarios        HistoricoComentario[]
+  historicoPosts              HistoricoPost[]
+  likesBlog                   LikeBlog[]                        @relation("LikesUsuario")
+  membroDeGrupos              MembroGrupoChatInterno[]          @relation("MembroDeGrupos")
+  mencoesChatInterno          MencaoMensagemChatInterno[]       @relation("MencoesChat")
+  mensagensFixadas            Mensagem[]                        @relation("UsuarioFixou")
+  mensagensEnviadas           Mensagem[]                        @relation("UsuarioEnviou")
+  mensagensRecebidas          MensagemChatInterno[]             @relation("DestinatarioChat")
+  mensagensChatInterno        MensagemChatInterno[]             @relation("RemetenteChat")
+  mensagensSuporte            MensagemSuporte[]                 @relation("MensagensSuporte")
+  mensagensWhatsApp           MensagemWhatsApp[]
+  postsLidos                  PostLido[]
+  postsSalvos                 PostSalvo[]
+  reacoes                     Reacao[]
+  respostasAlertas            RespostaAlertaChatInterno[]       @relation("RespostasAlertas")
+  solicitacoesAtendidas       SolicitacaoAjudaChatInterno[]     @relation("SolicitacoesAtendidas")
+  solicitacoesAjuda           SolicitacaoAjudaChatInterno[]     @relation("SolicitacoesAjuda")
+  statusHistorico             StatusHistorico[]
+  categoria                   Categoria?                        @relation("UsuarioCategoria", fields: [categoriaId], references: [id])
+  conta                       Conta                             @relation(fields: [contaId], references: [id], onDelete: Cascade)
+  empresaR                    Empresa?                          @relation(fields: [empresaId], references: [id])
+  setor                       Setor?                            @relation(fields: [setorId], references: [id])
+  visualizacoesChatInterno    VisualizacaoMensagemChatInterno[] @relation("VisualizacoesChat")
+  instanciasWhatsApp          WhatsAppInstancia[]
+
+  @@index([categoriaId])
+  @@index([empresaId])
+  @@map("usuarios")
+}
+
+model Empresa {
+  id                 String              @id @default(cuid())
+  contaId            String
+  razaoSocial        String
+  nomeFantasia       String?
+  cnpj               String              @unique
+  inscricaoEstadual  String?
+  inscricaoMunicipal String?
+  emailEmpresa       String?
+  telefoneEmpresa    String?
+  cep                String?
+  logradouro         String?
+  numero             String?
+  complemento        String?
+  bairro             String?
+  cidade             String?
+  estado             String?
+  status             String              @default("ATIVO")
+  criadaEm           DateTime            @default(now())
+  atualizadaEm       DateTime            @updatedAt
+  conta              Conta               @relation(fields: [contaId], references: [id])
+  usuarios           Usuario[]
+  instanciasWhatsApp WhatsAppInstancia[]
+
+  @@index([contaId])
+  @@map("empresas")
+}
+
+model Categoria {
+  id           String    @id @default(uuid())
+  nome         String
+  contaId      String
+  criadoEm     DateTime  @default(now())
+  atualizadoEm DateTime  @updatedAt
+  conta        Conta     @relation(fields: [contaId], references: [id], onDelete: Cascade)
+  usuarios     Usuario[] @relation("UsuarioCategoria")
+
+  @@unique([contaId, nome])
+  @@map("categorias")
+}
+
+model Setor {
+  id           String              @id @default(uuid())
+  nome         String
+  descricao    String?
+  ativo        Boolean             @default(true)
+  contaId      String
+  criadoEm     DateTime            @default(now())
+  atualizadoEm DateTime            @updatedAt
+  conversas    ConversaAtribuida[]
+  conta        Conta               @relation(fields: [contaId], references: [id], onDelete: Cascade)
+  usuarios     Usuario[]
+
+  @@map("setores")
+}
+
+model TemplateWhatsApp {
+  id                String          @id @default(cuid())
+  contaId           String
+  conexaoWhatsAppId String
+  nomeTemplate      String
+  namespace         String
+  linguagem         String          @default("pt_BR")
+  categoria         String
+  status            String
+  componentes       Json
+  criadoEm          DateTime        @default(now())
+  atualizadoEm      DateTime        @updatedAt
+  ultimaSincEm      DateTime        @default(now())
+  conexaoWhatsApp   ConexaoWhatsApp @relation(fields: [conexaoWhatsAppId], references: [id], onDelete: Cascade)
+  conta             Conta           @relation(fields: [contaId], references: [id], onDelete: Cascade)
+
+  @@unique([conexaoWhatsAppId, nomeTemplate])
+  @@index([contaId])
+  @@index([status])
+  @@map("templates_whatsapp")
+}
+
+model ConexaoWhatsApp {
+  id                 String             @id @default(uuid())
+  numeroWhatsApp     String?
+  nomeExibicao       String?
+  qrCode             String?
+  codigoParelhamento String?
+  status             StatusConexao      @default(DESCONECTADO)
+  sessaoData         String?
+  contaId            String
+  criadoEm           DateTime           @default(now())
+  atualizadoEm       DateTime           @updatedAt
+  ultimaConexao      DateTime?
+  corIdentificacao   String             @default("#25D366")
+  instancia          Int                @default(1)
+  nomeInstancia      String?
+  phoneNumberId      String?
+  tipoParceiro       String             @default("META")
+  conta              Conta              @relation(fields: [contaId], references: [id], onDelete: Cascade)
+  conversas          Conversa[]
+  templatesWhatsApp  TemplateWhatsApp[]
+
+  @@unique([contaId, instancia])
+  @@index([contaId])
+  @@index([status])
+  @@map("conexoes_whatsapp")
+}
+
+model Conversa {
+  id                   String              @id @default(uuid())
+  numeroCliente        String
+  conexaoWhatsAppId    String
+  criadaEm             DateTime            @default(now())
+  atualizadaEm         DateTime            @updatedAt
+  finalizadaEm         DateTime?
+  contaId              String
+  fixada               Boolean             @default(false)
+  fotoUrl              String?
+  isGrupo              Boolean             @default(false)
+  naoLidas             Int                 @default(0)
+  nomeGrupo            String?
+  ultimaMensagemEm     DateTime            @default(now())
+  usuarioResponsavelId String?
+  statusConversa       StatusConversa      @default(CAIXA_ENTRADA)
+  favorita             Boolean             @default(false)
+  foto_perfil          String?
+  statusOnline         String?
+  ultimoVisto          DateTime?
+  arquivada            Boolean             @default(false)
+  dataArquivamento     DateTime?
+  nomeContato          String?
+  email                String?
+  ordemFixacao         Int?
+  silenciada           Boolean             @default(false)
+  silenciadaAte        DateTime?
+  anotacoes            Anotacao[]
+  conexaoWhatsApp      ConexaoWhatsApp     @relation(fields: [conexaoWhatsAppId], references: [id], onDelete: Cascade)
+  conta                Conta               @relation(fields: [contaId], references: [id], onDelete: Cascade)
+  usuarioResponsavel   Usuario?            @relation("UsuarioResponsavel", fields: [usuarioResponsavelId], references: [id])
+  atribuicoes          ConversaAtribuida[]
+  etiquetas            ConversaEtiqueta[]
+  mensagens            Mensagem[]
+
+  @@unique([conexaoWhatsAppId, numeroCliente])
+  @@index([contaId, statusConversa])
+  @@index([usuarioResponsavelId])
+  @@index([favorita])
+  @@index([fixada])
+  @@index([arquivada])
+  @@index([ultimaMensagemEm])
+  @@index([conexaoWhatsAppId])
+  @@map("conversas")
+}
+
+model Etiqueta {
+  id        String             @id @default(uuid())
+  nome      String
+  cor       String
+  contaId   String
+  criadaEm  DateTime           @default(now())
+  conversas ConversaEtiqueta[]
+  conta     Conta              @relation(fields: [contaId], references: [id], onDelete: Cascade)
+
+  @@unique([contaId, nome])
+  @@map("etiquetas")
+}
+
+model ConversaEtiqueta {
+  conversaId  String
+  etiquetaId  String
+  atribuidaEm DateTime @default(now())
+  conversa    Conversa @relation(fields: [conversaId], references: [id], onDelete: Cascade)
+  etiqueta    Etiqueta @relation(fields: [etiquetaId], references: [id], onDelete: Cascade)
+
+  @@id([conversaId, etiquetaId])
+  @@map("conversas_etiquetas")
+}
+
+model Mensagem {
+  id                     String       @id @default(uuid())
+  conteudo               String?
+  usuarioId              String?
+  conversaId             String
+  contaId                String
+  tipo                   TipoMensagem @default(TEXTO)
+  atualizadaEm           DateTime     @updatedAt
+  enviadaPor             String
+  criadaEm               DateTime     @default(now())
+  mediaUrl               String?
+  statusMensagem         String       @default("enviada")
+  timestamp              DateTime?
+  direcao                String?
+  legendaImagem          String?
+  lida                   Boolean      @default(false)
+  mensagemCitadaAutor    String?
+  mensagemCitadaConteudo String?
+  midiaNome              String?
+  participant            String?
+  participantNome        String?
+  reactionToWhatsappId   String?
+  remetenteNome          String?
+  replyParaId            String?
+  enviadaEm              DateTime?
+  whatsappId             String?      @unique
+  fixada                 Boolean      @default(false)
+  favorita               Boolean      @default(false)
+  fixadaEm               DateTime?
+  fixadaPor              String?
+  apagada                Boolean      @default(false)
+  apagadaEm              DateTime?
+  apagadaParaTodos       Boolean      @default(false)
+  apagadaPor             String?
+  eventoTipo             String?
+  eventoSistema          String?
+  fotoRemetente          String?
+  formatacao             Json?
+  mediaAltura            Int?
+  mediaDuracao           Int?
+  mediaId                String?
+  mediaLargura           Int?
+  mediaMimeType          String?
+  mediaNome              String?
+  mediaSize              Int?
+  mediaThumbUrl          String?
+  editada                Boolean      @default(false)
+  editadaEm              DateTime?
+  lidaEm                 DateTime?
+  conta                  Conta        @relation(fields: [contaId], references: [id], onDelete: Cascade)
+  conversa               Conversa     @relation(fields: [conversaId], references: [id], onDelete: Cascade)
+  usuarioFixou           Usuario?     @relation("UsuarioFixou", fields: [fixadaPor], references: [id])
+  usuario                Usuario?     @relation("UsuarioEnviou", fields: [usuarioId], references: [id])
+  reacoes                Reacao[]
+
+  @@index([conversaId, enviadaEm])
+  @@index([usuarioId])
+  @@index([contaId])
+  @@index([whatsappId])
+  @@index([replyParaId])
+  @@index([reactionToWhatsappId])
+  @@index([fixada])
+  @@index([apagada])
+  @@index([timestamp])
+  @@map("mensagens")
+}
+
+model Reacao {
+  id              String   @id @default(uuid())
+  mensagemId      String
+  usuarioId       String?
+  emoji           String
+  numeroRemetente String?
+  nomeRemetente   String?
+  criadoEm        DateTime @default(now())
+  mensagem        Mensagem @relation(fields: [mensagemId], references: [id], onDelete: Cascade)
+  usuario         Usuario? @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  @@index([mensagemId])
+  @@index([usuarioId])
+  @@index([numeroRemetente])
+  @@index([mensagemId, usuarioId])
+  @@index([mensagemId, numeroRemetente])
+  @@map("reacoes")
+}
+
+model ConversaAtribuida {
+  id          String   @id @default(uuid())
+  conversaId  String
+  usuarioId   String?
+  setorId     String?
+  atribuidaEm DateTime @default(now())
+  conversa    Conversa @relation(fields: [conversaId], references: [id], onDelete: Cascade)
+  setor       Setor?   @relation(fields: [setorId], references: [id])
+  usuario     Usuario? @relation(fields: [usuarioId], references: [id])
+
+  @@unique([conversaId, usuarioId])
+  @@unique([conversaId, setorId])
+  @@index([conversaId])
+  @@index([usuarioId])
+  @@index([setorId])
+  @@map("conversas_atribuidas")
+}
+
+model Anotacao {
+  id                     String    @id @default(uuid())
+  conteudo               String
+  cor                    String?   @default("yellow")
+  conversaId             String
+  usuarioId              String
+  criadaEm               DateTime  @default(now())
+  atualizadaEm           DateTime  @updatedAt
+  apagada                Boolean   @default(false)
+  apagadaPor             String?
+  apagadaEm              DateTime?
+  mensagemCitadaAutor    String?
+  mensagemCitadaConteudo String?
+  replyParaId            String?
+  conversa               Conversa  @relation(fields: [conversaId], references: [id], onDelete: Cascade)
+  usuario                Usuario   @relation("UsuarioAnotacoes", fields: [usuarioId], references: [id])
+
+  @@index([conversaId])
+  @@index([usuarioId])
+  @@index([apagada])
+  @@map("anotacoes")
+}
+
+model ConfiguracaoBot {
+  id                  String   @id @default(uuid())
+  mensagemBoasVindas  String
+  mensagemForaHorario String?
+  horarioInicio       String?
+  horarioFim          String?
+  diasSemana          String[]
+  tempoEsperaBot      Int      @default(30)
+  ativo               Boolean  @default(true)
+  criadoEm            DateTime @default(now())
+  atualizadoEm        DateTime @updatedAt
+  contatoNome         String?
+  contatoNumero       String?
+  contatoVcard        String?
+
+  @@map("configuracoes_bot")
+}
+
+model BlogPost {
+  id               String           @id @default(cuid())
+  slug             String           @unique
+  titulo           String
+  conteudo         String
+  resumo           String?
+  imagemCapa       String?
+  categoria        String?
+  autorFrase       String?
+  tags             Json?
+  visualizacoes    Int              @default(0)
+  arquivado        Boolean          @default(false)
+  destaque         Boolean          @default(false)
+  publicado        Boolean          @default(true)
+  criadoEm         DateTime         @default(now())
+  atualizadoEm     DateTime         @default(now()) @updatedAt
+  autorId          String
+  autor            Usuario          @relation("PostsAutorBlog", fields: [autorId], references: [id])
+  comentariosNovos Comentario[]     @relation("PostComentariosNovo")
+  comentarios      ComentarioBlog[]
+  historico        HistoricoPost[]
+  likes            LikeBlog[]
+  lidosPor         PostLido[]
+  salvos           PostSalvo[]
+
+  @@map("blog_posts")
+}
+
+model PostSalvo {
+  id        String   @id @default(cuid())
+  usuarioId String
+  postId    String
+  criadoEm  DateTime @default(now())
+  post      BlogPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  usuario   Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  @@unique([usuarioId, postId])
+  @@index([usuarioId])
+  @@map("posts_salvos")
+}
+
+model HistoricoPost {
+  id         String   @id @default(cuid())
+  postId     String
+  editorId   String
+  titulo     String
+  conteudo   String
+  resumo     String?
+  tags       Json?
+  dataEdicao DateTime @default(now())
+  editor     Usuario  @relation(fields: [editorId], references: [id])
+  post       BlogPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@index([postId])
+  @@map("historico_posts")
+}
+
+model ComentarioBlog {
+  id             String                @id @default(cuid())
+  texto          String
+  criadoEm       DateTime              @default(now())
+  atualizadoEm   DateTime?             @updatedAt
+  deletado       Boolean               @default(false)
+  motivoExclusao String?
+  autorId        String
+  postId         String
+  parentId       String?
+  likes          LikeComentario[]
+  autor          Usuario               @relation("ComentariosAutor", fields: [autorId], references: [id], onDelete: Cascade)
+  parent         ComentarioBlog?       @relation("Respostas", fields: [parentId], references: [id])
+  filhos         ComentarioBlog[]      @relation("Respostas")
+  post           BlogPost              @relation(fields: [postId], references: [id], onDelete: Cascade)
+  historico      HistoricoComentario[]
+
+  @@index([postId])
+  @@map("comentarios_blog")
+}
+
+model HistoricoComentario {
+  id           String         @id @default(cuid())
+  comentarioId String
+  editorId     String
+  texto        String
+  dataEdicao   DateTime       @default(now())
+  comentario   ComentarioBlog @relation(fields: [comentarioId], references: [id], onDelete: Cascade)
+  editor       Usuario        @relation(fields: [editorId], references: [id])
+
+  @@index([comentarioId])
+  @@map("historico_comentarios")
+}
+
+model LikeComentario {
+  id           String         @id @default(cuid())
+  criadoEm     DateTime       @default(now())
+  usuarioId    String
+  comentarioId String
+  comentario   ComentarioBlog @relation(fields: [comentarioId], references: [id], onDelete: Cascade)
+  usuario      Usuario        @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  @@unique([usuarioId, comentarioId])
+  @@map("blog_comentarios_likes")
+}
+
+model LikeBlog {
+  id        String   @id @default(cuid())
+  criadoEm  DateTime @default(now())
+  usuarioId String
+  postId    String
+  post      BlogPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  usuario   Usuario  @relation("LikesUsuario", fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  @@unique([usuarioId, postId])
+  @@index([postId])
+  @@map("likes_blog")
+}
+
+model MensagemChatInterno {
+  id             String                            @id @default(cuid())
+  contaId        String
+  remetenteId    String
+  conteudo       String
+  tipo           String                            @default("texto")
+  respostaAId    String?
+  excluida       Boolean                           @default(false)
+  exclusaoGlobal Boolean                           @default(false)
+  editada        Boolean                           @default(false)
+  editadaEm      DateTime?
+  criadaEm       DateTime                          @default(now())
+  grupoId        String?
+  destinatarioId String?
+  arquivos       ArquivoMensagemChatInterno[]
+  curtidas       CurtidaMensagemChatInterno[]
+  exclusosPara   ExclusaoMensagemChatInterno[]
+  mencoes        MencaoMensagemChatInterno[]
+  conta          Conta                             @relation(fields: [contaId], references: [id], onDelete: Cascade)
+  destinatario   Usuario?                          @relation("DestinatarioChat", fields: [destinatarioId], references: [id], onDelete: Cascade)
+  grupo          GrupoChatInterno?                 @relation(fields: [grupoId], references: [id])
+  remetente      Usuario                           @relation("RemetenteChat", fields: [remetenteId], references: [id], onDelete: Cascade)
+  respostaA      MensagemChatInterno?              @relation("RespostaMensagem", fields: [respostaAId], references: [id])
+  respostas      MensagemChatInterno[]             @relation("RespostaMensagem")
+  visualizacoes  VisualizacaoMensagemChatInterno[]
+
+  @@index([contaId])
+  @@index([remetenteId])
+  @@index([destinatarioId])
+  @@index([criadaEm])
+  @@index([grupoId])
+  @@map("mensagens_chat_interno")
+}
+
+model CurtidaMensagemChatInterno {
+  id         String              @id @default(cuid())
+  mensagemId String
+  usuarioId  String
+  criadaEm   DateTime            @default(now())
+  mensagem   MensagemChatInterno @relation(fields: [mensagemId], references: [id], onDelete: Cascade)
+  usuario    Usuario             @relation("CurtidasChat", fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  @@unique([mensagemId, usuarioId])
+  @@index([mensagemId])
+  @@map("curtidas_mensagem_chat_interno")
+}
+
+model MencaoMensagemChatInterno {
+  id         String              @id @default(cuid())
+  mensagemId String
+  usuarioId  String
+  mensagem   MensagemChatInterno @relation(fields: [mensagemId], references: [id], onDelete: Cascade)
+  usuario    Usuario             @relation("MencoesChat", fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  @@unique([mensagemId, usuarioId])
+  @@index([usuarioId])
+  @@map("mencoes_mensagem_chat_interno")
+}
+
+model ArquivoMensagemChatInterno {
+  id           String              @id @default(cuid())
+  mensagemId   String
+  nomeOriginal String
+  nomeArquivo  String
+  caminho      String
+  tamanho      Int
+  tipo         String
+  criadoEm     DateTime            @default(now())
+  mensagem     MensagemChatInterno @relation(fields: [mensagemId], references: [id], onDelete: Cascade)
+
+  @@index([mensagemId])
+  @@map("arquivos_mensagem_chat_interno")
+}
+
+model VisualizacaoMensagemChatInterno {
+  id            String              @id @default(cuid())
+  mensagemId    String
+  usuarioId     String
+  visualizadaEm DateTime            @default(now())
+  mensagem      MensagemChatInterno @relation(fields: [mensagemId], references: [id], onDelete: Cascade)
+  usuario       Usuario             @relation("VisualizacoesChat", fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  @@unique([mensagemId, usuarioId])
+  @@index([mensagemId])
+  @@map("visualizacoes_mensagem_chat_interno")
+}
+
+model ExclusaoMensagemChatInterno {
+  id         String              @id @default(cuid())
+  mensagemId String
+  usuarioId  String
+  excluidaEm DateTime            @default(now())
+  mensagem   MensagemChatInterno @relation(fields: [mensagemId], references: [id], onDelete: Cascade)
+  usuario    Usuario             @relation("ExclusoesChat", fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  @@unique([mensagemId, usuarioId])
+  @@map("exclusoes_mensagem_chat_interno")
+}
+
+model AlertaChatInterno {
+  id            String                          @id @default(cuid())
+  contaId       String
+  remetenteId   String
+  titulo        String
+  mensagem      String
+  criadoEm      DateTime                        @default(now())
+  atualizadoEm  DateTime                        @updatedAt
+  prioridade    String                          @default("MEDIA")
+  resolvido     Boolean                         @default(false)
+  tipo          String                          @default("INFORMATIVO")
+  visualizado   Boolean                         @default(false)
+  conta         Conta                           @relation(fields: [contaId], references: [id], onDelete: Cascade)
+  remetente     Usuario                         @relation("AlertasEnviados", fields: [remetenteId], references: [id], onDelete: Cascade)
+  destinatarios DestinatarioAlertaChatInterno[]
+  respostas     RespostaAlertaChatInterno[]
+
+  @@index([contaId])
+  @@map("alertas_chat_interno")
+}
+
+model DestinatarioAlertaChatInterno {
+  id        String            @id @default(cuid())
+  alertaId  String
+  usuarioId String
+  alerta    AlertaChatInterno @relation(fields: [alertaId], references: [id], onDelete: Cascade)
+  usuario   Usuario           @relation("AlertasRecebidos", fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  @@unique([alertaId, usuarioId])
+  @@map("destinatarios_alerta_chat_interno")
+}
+
+model RespostaAlertaChatInterno {
+  id        String            @id @default(cuid())
+  alertaId  String
+  usuarioId String
+  resposta  String
+  criadaEm  DateTime          @default(now())
+  mensagem  String?
+  alerta    AlertaChatInterno @relation(fields: [alertaId], references: [id], onDelete: Cascade)
+  usuario   Usuario           @relation("RespostasAlertas", fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  @@unique([alertaId, usuarioId])
+  @@map("respostas_alerta_chat_interno")
+}
+
+model SolicitacaoAjudaChatInterno {
+  id                  String            @id @default(cuid())
+  contaId             String
+  solicitanteId       String
+  tipo                String
+  descricao           String
+  status              String            @default("PENDENTE")
+  atendidoPorId       String?
+  atendidaEm          DateTime?
+  criadaEm            DateTime          @default(now())
+  protocolo           String?           @unique
+  atualizadaEm        DateTime          @updatedAt
+  avaliacao           Int?
+  comentarioAvaliacao String?
+  encerradaEm         DateTime?
+  observacao          String?
+  prioridade          String            @default("NORMAL")
+  mensagens           MensagemSuporte[]
+  atendidoPor         Usuario?          @relation("SolicitacoesAtendidas", fields: [atendidoPorId], references: [id])
+  conta               Conta             @relation(fields: [contaId], references: [id], onDelete: Cascade)
+  solicitante         Usuario           @relation("SolicitacoesAjuda", fields: [solicitanteId], references: [id], onDelete: Cascade)
+
+  @@index([contaId])
+  @@index([solicitanteId])
+  @@index([atendidoPorId])
+  @@index([status])
+  @@map("solicitacoes_ajuda_chat_interno")
+}
+
+model GrupoChatInterno {
+  id           String                   @id @default(cuid())
+  contaId      String
+  criadorId    String
+  nome         String
+  descricao    String?
+  imagem       String?
+  criadoEm     DateTime                 @default(now())
+  atualizadoEm DateTime                 @updatedAt
+  tipo         String                   @default("PRIVADO")
+  conta        Conta                    @relation(fields: [contaId], references: [id], onDelete: Cascade)
+  criador      Usuario                  @relation("GruposCriados", fields: [criadorId], references: [id], onDelete: Cascade)
+  membros      MembroGrupoChatInterno[]
+  mensagens    MensagemChatInterno[]
+
+  @@unique([contaId, nome])
+  @@map("grupos_chat_interno")
+}
+
+model MembroGrupoChatInterno {
+  id           String           @id @default(cuid())
+  grupoId      String
+  usuarioId    String
+  isAdmin      Boolean          @default(false)
+  adicionadoEm DateTime         @default(now())
+  papel        String           @default("MEMBRO")
+  grupo        GrupoChatInterno @relation(fields: [grupoId], references: [id], onDelete: Cascade)
+  usuario      Usuario          @relation("MembroDeGrupos", fields: [usuarioId], references: [id])
+
+  @@unique([grupoId, usuarioId])
+  @@map("membros_grupo_chat_interno")
+}
+
+model FavoritoChatInterno {
+  id                String   @id @default(cuid())
+  usuarioId         String
+  favoritoId        String
+  criadoEm          DateTime @default(now())
+  favoritoUsuarioId String?
+  favorito          Usuario  @relation("UsuarioFavoritadoPor", fields: [favoritoId], references: [id], onDelete: Cascade)
+  usuario           Usuario  @relation("UsuarioFavoritos", fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  @@unique([usuarioId, favoritoId])
+  @@index([usuarioId])
+  @@map("favoritos_chat_interno")
+}
+
+model WhatsAppInstancia {
+  id                    String                 @id @default(cuid())
+  contaId               String
+  empresaId             String?
+  usuarioId             String
+  nome                  String
+  numero                String?
+  status                String                 @default("DESCONECTADO")
+  qrCode                String?
+  conectadoEm           DateTime?
+  desconectadoEm        DateTime?
+  criadaEm              DateTime               @default(now())
+  atualizadaEm          DateTime               @updatedAt
+  categoriasAtendimento CategoriaAtendimento[]
+  contatos              ContatoWhatsApp[]
+  mensagens             MensagemWhatsApp[]
+  statusAtendimento     StatusAtendimento[]
+  conta                 Conta                  @relation(fields: [contaId], references: [id])
+  empresa               Empresa?               @relation(fields: [empresaId], references: [id])
+  usuario               Usuario                @relation(fields: [usuarioId], references: [id])
+
+  @@index([contaId])
+  @@index([empresaId])
+  @@index([usuarioId])
+  @@map("whatsapp_instancias")
+}
+
+model ContatoWhatsApp {
+  id                   String             @id @default(cuid())
+  instanciaId          String
+  usuarioResponsavelId String?
+  numero               String
+  nome                 String?
+  pushname             String?
+  fotoPerfil           String?
+  isGroup              Boolean            @default(false)
+  ultimaMensagemEm     DateTime?
+  criadoEm             DateTime           @default(now())
+  atualizadoEm         DateTime           @updatedAt
+  instancia            WhatsAppInstancia  @relation(fields: [instanciaId], references: [id], onDelete: Cascade)
+  usuarioResponsavel   Usuario?           @relation(fields: [usuarioResponsavelId], references: [id])
+  mensagens            MensagemWhatsApp[]
+
+  @@unique([instanciaId, numero])
+  @@index([instanciaId])
+  @@index([usuarioResponsavelId])
+  @@map("contatos_whatsapp")
+}
+
+model MensagemWhatsApp {
+  id          String            @id @default(cuid())
+  instanciaId String
+  contatoId   String
+  usuarioId   String?
+  messageId   String            @unique
+  fromMe      Boolean
+  body        String?
+  type        String
+  timestamp   BigInt
+  status      String?
+  hasMedia    Boolean           @default(false)
+  mediaUrl    String?
+  mimetype    String?
+  filename    String?
+  isForwarded Boolean           @default(false)
+  quotedMsgId String?
+  vCardList   Json?
+  criadaEm    DateTime          @default(now())
+  contato     ContatoWhatsApp   @relation(fields: [contatoId], references: [id], onDelete: Cascade)
+  instancia   WhatsAppInstancia @relation(fields: [instanciaId], references: [id], onDelete: Cascade)
+  usuario     Usuario?          @relation(fields: [usuarioId], references: [id])
+
+  @@index([instanciaId])
+  @@index([contatoId])
+  @@index([usuarioId])
+  @@index([timestamp])
+  @@map("mensagens_whatsapp")
+}
+
+model CategoriaAtendimento {
+  id           String             @id @default(cuid())
+  contaId      String
+  instanciaId  String?
+  nome         String
+  descricao    String?
+  cor          String             @default("#3B82F6")
+  ativo        Boolean            @default(true)
+  ordem        Int                @default(0)
+  criadaEm     DateTime           @default(now())
+  atualizadaEm DateTime           @updatedAt
+  conta        Conta              @relation(fields: [contaId], references: [id])
+  instancia    WhatsAppInstancia? @relation(fields: [instanciaId], references: [id])
+
+  @@index([contaId])
+  @@index([instanciaId])
+  @@map("categorias_atendimento")
+}
+
+model StatusAtendimento {
+  id           String             @id @default(cuid())
+  contaId      String
+  instanciaId  String?
+  nome         String
+  descricao    String?
+  cor          String             @default("#10B981")
+  tipo         String             @default("EM_ANDAMENTO")
+  ativo        Boolean            @default(true)
+  ordem        Int                @default(0)
+  criadoEm     DateTime           @default(now())
+  atualizadaEm DateTime           @updatedAt
+  conta        Conta              @relation(fields: [contaId], references: [id])
+  instancia    WhatsAppInstancia? @relation(fields: [instanciaId], references: [id])
+  historico    StatusHistorico[]
+
+  @@index([contaId])
+  @@index([instanciaId])
+  @@map("status_atendimento")
+}
+
+model StatusHistorico {
+  id            String            @id @default(cuid())
+  contatoNumero String
+  statusId      String
+  usuarioId     String?
+  observacao    String?
+  criadoEm      DateTime          @default(now())
+  status        StatusAtendimento @relation(fields: [statusId], references: [id])
+  usuario       Usuario?          @relation(fields: [usuarioId], references: [id])
+
+  @@index([contatoNumero])
+  @@index([statusId])
+  @@index([usuarioId])
+  @@map("status_historico")
+}
+
+model MensagemSuporte {
+  id                  String                      @id @default(cuid())
+  solicitacaoId       String
+  remetenteId         String
+  conteudo            String
+  tipo                String                      @default("texto")
+  criadaEm            DateTime                    @default(now())
+  visualizada         Boolean                     @default(false)
+  avaliacao           Int?
+  comentarioAvaliacao String?
+  remetente           Usuario                     @relation("MensagensSuporte", fields: [remetenteId], references: [id], onDelete: Cascade)
+  solicitacao         SolicitacaoAjudaChatInterno @relation(fields: [solicitacaoId], references: [id], onDelete: Cascade)
+
+  @@index([solicitacaoId])
+  @@index([remetenteId])
+  @@map("mensagens_suporte")
+}
+
+model Comentario {
+  id           String    @id @default(cuid())
+  postId       String?
+  autorId      String
+  conteudo     String
+  aprovado     Boolean   @default(false)
+  criadoEm     DateTime  @default(now())
+  atualizadoEm DateTime  @updatedAt
+  autor        Usuario   @relation("ComentariosAutorNovo", fields: [autorId], references: [id])
+  post         BlogPost? @relation("PostComentariosNovo", fields: [postId], references: [id])
+
+  @@index([autorId])
+  @@index([postId])
+  @@map("comentarios")
+}
+
+model PostLido {
+  id        String   @id @default(cuid())
+  usuarioId String
+  postId    String
+  lidoEm    DateTime @default(now())
+  post      BlogPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  usuario   Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  @@unique([usuarioId, postId])
+  @@index([usuarioId])
+  @@map("posts_lidos")
+}
+
+model ConversaIA {
+  id                  String       @id @default(cuid())
+  contaId             String
+  usuarioId           String       @map("criadorId")
+  nome                String
+  threadIdGemini      String?
+  criadoEm            DateTime     @default(now())
+  atualizadoEm        DateTime     @updatedAt
+  status              String       @default("ATIVA")
+  avaliacao           Int?
+  comentarioAvaliacao String?
+  encerradaEm         DateTime?
+  sentimento          String?
+  statusTratativa     String       @default("PENDENTE")
+  tags                String[]
+  dispositivo         String?
+  foiLida             Boolean      @default(false)
+  conta               Conta        @relation("ContaConversasIA", fields: [contaId], references: [id], onDelete: Cascade)
+  usuario             Usuario      @relation("UsuarioConversasIA", fields: [usuarioId], references: [id])
+  mensagens           MensagemIA[]
+
+  @@index([contaId])
+  @@index([usuarioId])
+  @@index([status])
+  @@map("conversas_ia")
+}
+
+model MensagemIA {
+  id          String     @id @default(cuid())
+  conversaId  String
+  remetenteId String?
+  conteudo    String
+  role        String
+  criadaEm    DateTime   @default(now())
+  apagada     Boolean    @default(false)
+  payload     Json?
+  conversa    ConversaIA @relation(fields: [conversaId], references: [id], onDelete: Cascade)
+
+  @@index([conversaId])
+  @@index([apagada])
+  @@map("mensagens_ia")
+}
+
+model Analise {
+  id        String   @id @default(cuid())
+  usuarioId String?
+  tipo      String
+  pagina    String?
+  acao      String?
+  categoria String?
+  label     String?
+  valor     Int?
+  metadados Json?
+  userAgent String?
+  ip        String?
+  criadaEm  DateTime @default(now())
+  usuario   Usuario? @relation(fields: [usuarioId], references: [id])
+
+  @@index([usuarioId])
+  @@index([tipo])
+  @@index([pagina])
+  @@index([criadaEm])
+  @@map("analises")
+}
+
+enum TipoUsuario {
+  OWNER
+  ADMIN_EMPRESA
+  ADMIN
+  COLABORADOR
+  ENCARREGADO
+  SUPORTE
+  CEO
+}
+
+enum StatusUsuario {
+  ATIVO
+  INATIVO
+  PENDENTE
+}
+
+enum TipoConta {
+  EMPRESA
+  INDIVIDUAL
+}
+
+enum StatusConexao {
+  DESCONECTADO
+  CONECTANDO
+  CONECTADO
+  ERRO
+  PARELHANDO
+}
+
+enum StatusConversa {
+  CAIXA_ENTRADA
+  ESPERANDO
+  FINALIZADA
+  ARQUIVADA
+  SEM_CONVERSA_SALVA
+}
+
+enum TipoMensagem {
+  TEXTO
+  IMAGEM
+  AUDIO
+  VIDEO
+  DOCUMENTO
+  CONTATO
+  LOCALIZACAO
+  FIGURINHA
+  ANOTACAO
+  REACAO
+  EVENTO
+  SISTEMA
+  ENQUETE
+  TEMPLATE
+  DESCONHECIDO
+}

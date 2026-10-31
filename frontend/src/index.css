@@ -366,3 +366,12 @@
 .notification-pulse {
   animation: pulse 2s infinite;
 }
+/* falezap-conversa-2026 — superfícies de atendimento mais táteis. */
+#root .MuiPaper-root{transition:border-color .22s ease,box-shadow .22s ease}
+#root .MuiPaper-elevation1:hover{box-shadow:0 8px 26px rgba(18,87,138,.12)}
+#root .MuiButton-containedPrimary{position:relative;overflow:hidden;transition:transform .22s ease,box-shadow .22s ease}
+#root .MuiButton-containedPrimary:not(:disabled):hover{transform:translateY(-2px);box-shadow:0 9px 22px rgba(25,118,210,.23)}
+#root .MuiBadge-badge{font-variant-numeric:tabular-nums}
+#root .MuiChip-root{transition:transform .22s ease}
+#root .MuiChip-root:hover{transform:translateY(-1px)}
+@media(prefers-reduced-motion:reduce){#root .MuiPaper-root,#root .MuiButton-containedPrimary,#root .MuiChip-root{transition:none}}
